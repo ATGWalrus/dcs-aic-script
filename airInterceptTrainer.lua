@@ -88,11 +88,11 @@
     gPresentationTypeTable	= {{"Azimuth", 2, nmToMetres(7), nmToMetres(17), {270}},
                                  {"Range", 2, nmToMetres(10), nmToMetres(20), {180}},
                                  {"Vic", 3, nmToMetres(6), nmToMetres(12), {135, 225}},
-                                 {"Ladder", 3, nmToMetres(7), nmToMetres(12), {180}},
+                                 {"Ladder", 3, nmToMetres(7), nmToMetres(12), {180, 360}},
                                  {"Wall", 3, nmToMetres(7), nmToMetres(15), {90, 270}},
                                  {"singleGroup", 1, 0, 0, {}},
                                  {"Echelon", 2, nmToMetres(7), nmToMetres(17), {200}},
-                                 {"Champagne", 3, nmToMetres(7), nmToMetres(17), {45, 315}},
+                                 {"Champagne", 4, nmToMetres(7), nmToMetres(17), {45, 180, 315}},
                                  {"2Stack"}, {"3Stack"}, {"Box"}}
 
     gAircraftTypeTable = {{"F-4", "fighter", "blue"}, {"F-5", "fighter", "blue"}, {"F-14", "fighter", "blue"},
@@ -198,78 +198,5 @@
     end
 
     local testRangeTimer=TIMER:New(testCallSelectPresentation):Start(2, 5, 100) -- timer calls function creating new groups every five seconds for testing
-
-    ---deprecated code
-    --[[
-        function zSinCosX(bearing, origin, separation)
-        local modBearing = (bearing % 90)
-        local deltaZ = math.sin(math.rad(modBearing)) * separation
-        local deltaX = math.cos(math.rad(modBearing)) * separation
-        local z = origin.z + deltaZ
-        --BASE:E("delta z calculated")
-        local y = randomAltitude()
-        --BASE:E("y calculated")
-        --BASE:E("origin.x " .. origin.x)
-        local x = origin.x + deltaX
-        local locationObj = POINT_VEC3:New(x, y, z)
-        return locationObj
-    end
-
-    function minusZSinCosX(bearing, origin, separation)
-        local modBearing = (90 - (bearing % 90))
-        local deltaZ = math.sin(math.rad(modBearing)) * separation
-        local deltaX = math.cos(math.rad(modBearing)) * separation
-        local z = origin.z - deltaZ
-        local y = randomAltitude()
-        local x = origin.x + deltaX
-        local locationObj = POINT_VEC3:New(x, y, z)
-        return locationObj
-    end
-
-    function testDeltaCalc()
-        presentation = gPresentationTypeTable[3]
-        leadPosition = getRandomLocation(gCentre, gMinSpawnRange, gMaxSpawnRange, randomBearing()) -- type POINT_VEC3
-        groupHeading = randomBearing()
-        separation =  randomRange(5000, 10000)
-        headingRecip = ((groupHeading + 180) % 360)
-        if (headingRecip > 0 and headingRecip <= 90) or (headingRecip > 180 and headingRecip <= 270) then
-            trailPosition = zSinCosX(headingRecip, leadPosition, separation)
-       elseif (headingRecip > 90 and headingRecip <= 180) or (headingRecip > 270 and headingRecip <= 360) then
-            trailPosition = minusZSinCosX(headingRecip, leadPosition, separation)
-        end
-        spawnGroup(leadPosition, groupHeading)
-        spawnGroup(trailPosition, groupHeading)
-        leadPosition = nil
-        trailPosition = nil
-    end
-
-        function twoGroupHelper(presentation)
-        --BASE:E("two group helper top")
-        local leadPosition = getRandomLocation(gCentre, gMinSpawnRange, gMaxSpawnRange, randomBearing()) -- set lead group position
-        local trailPosition -- initialise trailPosition as local to this function
-        local groupHeading = randomBearing() -- get random heading for group - this will be used to calculate the bearing from lead at which to spawn second/trail group
-        --BASE:E("groupHeading " .. tostring(groupHeading))
-        local separation = randomRange(presentation[3], presentation[4]) -- distance between lead and trail groups
-        local headingRecip = bearingFrom(presentation[5], groupHeading)
-        --BASE:E("lead position calculated " .. tostring(leadPosition.x) .. ", " .. tostring(leadPosition.z))
-        if (headingRecip > 0 and headingRecip <= 90) or (headingRecip > 180 and headingRecip <= 270) then
-            trailPosition = zSinCosX(bearingFrom(presentation[5], groupHeading), leadPosition, separation)
-        elseif (headingRecip > 90 and headingRecip <= 180) or (headingRecip > 270 and headingRecip <= 360) then
-            trailPosition = minusZSinCosX(bearingFrom(presentation[5], groupHeading), leadPosition, separation)
-        end -- position of trail group is calculated using lead position and data from presentation table
-        --BASE:E("trail position calculated " .. tostring(trailPosition.x) .. ", " .. tostring(trailPosition.z))
-        --MESSAGE:New(tostring(groupHeading .. " " .. bearingFrom(presentation[5], groupHeading))):ToAll()
-        spawnGroup(leadPosition, groupHeading)
-        spawnGroup(trailPosition, groupHeading)
-        MESSAGE:New(presentation[2] .. "-group " .. presentation[1] .. " presentation spawned"):ToAll()
-    end
-
-        function onSpawnScheduler(group)
-        local groupScheduler = SCHEDULER:New(group, checkAlive(group), {}, 5, 5)
-    end
-
-    local testRangeTimer=TIMER:New(testDeltaCalc):Start(2, 5, 100) -- timer calls function creating new groups every five seconds for testing--]]
-
-
 
 
