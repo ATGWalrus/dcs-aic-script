@@ -13,18 +13,23 @@
     BASE:TraceOnOff(true)
     BASE:TraceLevel(1)
     BASE:TraceClass("SPAWN")
+    BASE:TraceClass("GROUP")
 
     --MESSAGE:New(gAircraftTypeTable[1][1]):ToAll()
 
-    -- helper functions
+    --- helper functions
+
+    -- converts value passed in from nm to metres
     local function nmToMetres(nauticalMiles)
         return nauticalMiles * 1852
     end
 
+    -- converts value passed in from feet to metres
     local function ftToMetres(feet)
         return feet * 0.3048
     end
 
+    -- returns a random altitude from the range passed as min and max arguments
     local function randomAltitude(min, max)
         if min == nil then
             return math.random(gMinAltitude, gMaxAltitude)
@@ -33,12 +38,14 @@
         end
     end
 
+    -- generates a random bearing from 001 to 360
     local function randomBearing()
         return math.random(1, 360)
     end
 
+    -- returns range randomly from either optional min/max arguments or globals if no values are passed
     local function randomRange(min, max) -- called by randomDeltaX & Y to find range from centre at which group will be spawned
-        if min or max ~= nil then
+        if min and max ~= nil then
             return math.random(min, max) -- if arguments are passed in, range is determined between these
         else
             BASE:E("calculating deltaY from min")
@@ -46,25 +53,28 @@
         end
     end
 
+    -- calculates delta x (i.e. Northing) from origin either randomly from bearing and minimum and maximum range arguments or at a fixed range if only min is passed
     local function randomDeltaX(bearing, min, max)
         if max ~= nil then
             return randomRange(min, max) * math.cos(math.rad(bearing))
         else
             BASE:E("calculating deltaX from min " .. tostring(min))
-            return min * math.cos(math.rad(bearingToNinety(bearing)))
+            return min * math.cos(math.rad(bearing))
         end
     end
 
+    -- calculates delta z (i.e. Easting) from origin either randomly from bearing and minimum and maximum range arguments or at a fixed range if only min is passed
     local function randomDeltaZ(bearing, min, max)
         if max ~= nil then
             return randomRange(min, max) * math.sin(math.rad(bearing))
         else
             BASE:E("calculating deltaZ from min " .. tostring(min))
-            return min * math.sin(math.rad(bearingToNinety(bearing)))
+            return min * math.sin(math.rad(bearing))
         end
     end
 
-    local function bearingFrom(presentationBearing, heading) -- calculates offset between two bearings; if 180 is passed as either argument, will calculate reciprocal
+    -- unused; calculates offset between two bearings; if 180 is passed as either argument, will calculate reciprocal
+    local function bearingFrom(presentationBearing, heading)
         if presentationBearing + heading == 360 then
             return 360
         else
@@ -82,6 +92,7 @@
     gMinSpawnRange = nmToMetres(100) -- min range ditto above
     gMaxAltitude = ftToMetres(35000) -- max altitude at which a group can be spawned
     gMinAltitude = ftToMetres(2500) -- min altitude ditto above
+    gSpawnedCounter = 1 -- used to set index for new instances of GROUP in gPresentationTypeTable
 
     --- presentation, aircraft and spawned groups tables
     --- each element contains: [1] presentation name [2] number of aircraft, [3] min separation, [4] max separation, [5] table of bearings from lead to trail groups
@@ -99,9 +110,10 @@
                           {"F-15", "fighter", "blue"}, {"F-16", "fighter", "blue"}, {"F-18", "fighter", "blue"},
                           {"Fagot", "fighter", "red"}, {"Farmer", "fighter", "red"}, {"Fishbed", "fighter", "red"},
                           {"Flogger", "fighter", "red"}, {"Fulcrum", "fighter", "red"}, {"Flanker", "fighter", "red"}}
-    gSpawnedTable = {}
+    gSpawnedTable = {}  -- will be filled with instances of GROUP objects as they are instantiated by spawnGroup function
 
-    --- returns a string containing a group name (these MUST conform with group names in ME)
+    --- further helper functions requiring global variables
+    -- randomly returns a string containing a group name (these MUST conform with group names in ME)
     function randomAircraft()
         local selection = math.random(#gAircraftTypeTable)
         for i = 1, selection do
@@ -111,19 +123,16 @@
         end
     end
 
-    --- Finds random location and returns it in a POINT_VEC3
+    -- calculates random location and returns it as a POINT_VEC3 from origin, min and max range and bearing from origin arguments
     function getRandomLocation(centre, min, max, bearing)
-        BASE:E("getRandomLocation")
         local x = centre.x + randomDeltaX(bearing, min, max)
-        BASE:E("x = " .. tostring(x))
         local y = randomAltitude()
         local z = centre.y + randomDeltaZ(bearing, min, max)
-        --BASE:E("z = " .. tostring(z))
-        --MESSAGE:New(z, 25):ToAll()
         local locationObj = POINT_VEC3:New(x, y, z)
         return locationObj
     end
 
+    -- unused test function
     function checkAlive(group)
         if group:IsAlive() == true then
             return true
@@ -132,6 +141,17 @@
         end
     end
 
+    -- unused test function
+    function spawnSingleGroupAtRandomLocation()
+        BASE:E("spawnRandom")
+        MESSAGE:New("spawnRandom", 40):ToAll()
+        local spawnPoint = getRandomLocation()
+        spawnGroup(spawnPoint)
+    end
+
+    --- functions to calculate spawn parameters for new groups
+    -- calculates the relative position of one object possessing a position from another i.e. the parameters bearingFromOrigin and separation represent the hypotenuse of the triangle /n
+    -- having as its centre the object passed as origin. Returns new position as a POINT_VEC3
     function calculateOffsetPos(bearingFromOrigin, origin, separation)
         local z = origin.z + (separation * math.sin(math.rad(bearingFromOrigin)))
         local y = randomAltitude()
@@ -140,42 +160,31 @@
         return locationObj
     end
 
-    function spawnSingleGroupAtRandomLocation()
-        BASE:E("spawnRandom")
-        MESSAGE:New("spawnRandom", 40):ToAll()
-        local spawnPoint = getRandomLocation()
-        spawnGroup(spawnPoint)
+    -- helper function using calculateOffsetPos() to set a waypoint for group argument on the passed bearing
+    function setWaypoint(group, bearing, origin, range, speed)
+        BASE:E("setWaypoint")
+        local newWaypoint = calculateOffsetPos(bearing, origin, 100000)
+        group:RouteAirTo(newWaypoint:GetCoordinate(), POINT_VEC3.RoutePointAltType.BARO, POINT_VEC3.RoutePointType.TurningPoint, POINT_VEC3.RoutePointAction.TurningPoint, 800, 1)
+        BASE:E("waypoint set")
     end
 
-    function setWaypoint(group, heading, origin, range)
-        local newWaypoint = calculateOffsetPos(heading, origin, nmToMetres(250))
-        group:RouteAirTo(newWaypoint:GetCoordinate(), "BARO", "Turning Point", "NO", 800, 0)
-    end
 
     function spawnGroup(location, heading)
         local type = randomAircraft()
+        local newGroup = SPAWN:NewWithAlias(type, "AIC Group " .. gSpawnedCounter)
+        newGroup:InitHeading(heading)
+        newGroup:InitGroupHeading(heading)
         if gSpawnedTable[1] == nil then -- Check if table is empty and add reference to new group in first element if it is
             BASE:E("table empty")
-            local newGroup = SPAWN:NewWithAlias(type, "AIC Group")
-            newGroup:InitHeading(heading)
-            newGroup:InitGroupHeading(heading)
-            newGroup:SpawnFromPointVec3(location)
-            gSpawnedTable[1] = newGroup
-            setWaypoint(GROUP:FindByName("AIC Group#001"), heading, location)
-            newGroup = nil
-            BASE:E("newGroup sanitised")
-        else
+            gSpawnedTable[1] = newGroup:SpawnFromPointVec3(location)
+            setWaypoint(gSpawnedTable[1], heading, location)
+        else                            -- if table is not empty, reference will be created at element corresponding to current value of gSpawnedCounter
             BASE:E("table not empty")
-            local spawnIndex = #gSpawnedTable + 1
-            local newGroup = SPAWN:NewWithAlias(type, "AIC Group " .. spawnIndex)
-            newGroup:InitHeading(heading)
-            newGroup:InitGroupHeading(heading)
-            newGroup:SpawnFromPointVec3(location)
-            gSpawnedTable[spawnIndex] = newGroup
-            setWaypoint(GROUP:FindByName("AIC Group " .. tostring(#gSpawnedTable) .. "#001"), heading, location)
-            newGroup = nil
-            BASE:E("newGroup sanitised")
+            gSpawnedCounter = gSpawnedCounter + 1
+            gSpawnedTable[gSpawnedCounter] = newGroup:SpawnFromPointVec3(location)
+            setWaypoint(gSpawnedTable[gSpawnedCounter], heading, location)
         end
+        BASE:E(gSpawnedTable[gSpawnedCounter]:GetPositionVec3())
     end
 
     function selectPresentation(presentation)
@@ -187,13 +196,14 @@
     end
 
     function spawnPresentation(selectedPresentation)
+        local type = randomAircraft()
         local leadPosition = getRandomLocation(gCentre, gMinSpawnRange, gMaxSpawnRange, randomBearing())
         local groupHeading = randomBearing()
         local separation = randomRange(selectedPresentation[3], selectedPresentation[4])
-        spawnGroup(leadPosition, groupHeading)
+        spawnGroup(leadPosition, groupHeading, type)
         for i = 1, #selectedPresentation[5] do
             local angleOff = selectedPresentation[5][i] + groupHeading
-            spawnGroup(calculateOffsetPos(angleOff, leadPosition, separation), groupHeading)
+            spawnGroup(calculateOffsetPos(angleOff, leadPosition, separation), groupHeading, type)
         end
         MESSAGE:New(selectedPresentation[2] .. "-group " .. selectedPresentation[1] .. " presentation spawned"):ToAll()
     end
