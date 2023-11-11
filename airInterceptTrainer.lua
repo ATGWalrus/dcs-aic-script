@@ -90,7 +90,7 @@
                                  {"Vic", 3, nmToMetres(6), nmToMetres(12), {135, 225}},
                                  {"Ladder", 3, nmToMetres(7), nmToMetres(12), {180, 360}},
                                  {"Wall", 3, nmToMetres(7), nmToMetres(15), {90, 270}},
-                                 {"singleGroup", 1, 0, 0, {}},
+                                 {"Single Group", 1, 0, 0, {}},
                                  {"Echelon", 2, nmToMetres(7), nmToMetres(17), {200}},
                                  {"Champagne", 4, nmToMetres(7), nmToMetres(17), {45, 180, 315}},
                                  {"2Stack"}, {"3Stack"}, {"Box"}}
@@ -132,6 +132,14 @@
         end
     end
 
+    function calculateOffsetPos(bearingFromOrigin, origin, separation)
+        local z = origin.z + (separation * math.sin(math.rad(bearingFromOrigin)))
+        local y = randomAltitude()
+        local x = origin.x + (separation * math.cos(math.rad(bearingFromOrigin)))
+        local locationObj = POINT_VEC3:New(x, y, z)
+        return locationObj
+    end
+
     function spawnSingleGroupAtRandomLocation()
         BASE:E("spawnRandom")
         MESSAGE:New("spawnRandom", 40):ToAll()
@@ -139,25 +147,32 @@
         spawnGroup(spawnPoint)
     end
 
+    function setWaypoint(group, heading, origin, range)
+        local newWaypoint = calculateOffsetPos(heading, origin, nmToMetres(250))
+        group:RouteAirTo(newWaypoint:GetCoordinate(), "BARO", "Turning Point", "NO", 800, 0)
+    end
+
     function spawnGroup(location, heading)
         local type = randomAircraft()
         if gSpawnedTable[1] == nil then -- Check if table is empty and add reference to new group in first element if it is
             BASE:E("table empty")
-            local newGroup = SPAWN:NewWithAlias(type, "SpawnAliasPrefix")
+            local newGroup = SPAWN:NewWithAlias(type, "AIC Group")
             newGroup:InitHeading(heading)
             newGroup:InitGroupHeading(heading)
             newGroup:SpawnFromPointVec3(location)
             gSpawnedTable[1] = newGroup
+            setWaypoint(GROUP:FindByName("AIC Group#001"), heading, location)
             newGroup = nil
             BASE:E("newGroup sanitised")
         else
             BASE:E("table not empty")
             local spawnIndex = #gSpawnedTable + 1
-            local newGroup = SPAWN:NewWithAlias(type, "SpawnAliasPrefix" .. spawnIndex)
+            local newGroup = SPAWN:NewWithAlias(type, "AIC Group " .. spawnIndex)
             newGroup:InitHeading(heading)
             newGroup:InitGroupHeading(heading)
             newGroup:SpawnFromPointVec3(location)
             gSpawnedTable[spawnIndex] = newGroup
+            setWaypoint(GROUP:FindByName("AIC Group " .. tostring(#gSpawnedTable) .. "#001"), heading, location)
             newGroup = nil
             BASE:E("newGroup sanitised")
         end
@@ -169,14 +184,6 @@
                 return gPresentationTypeTable[i]
             end
         end
-    end
-
-    function calculateOffsetPos(bearingFromLead, origin, separation)
-        local z = origin.z + (separation * math.sin(math.rad(bearingFromLead)))
-        local y = randomAltitude()
-        local x = origin.x + (separation * math.cos(math.rad(bearingFromLead)))
-        local locationObj = POINT_VEC3:New(x, y, z)
-        return locationObj
     end
 
     function spawnPresentation(selectedPresentation)
@@ -196,6 +203,8 @@
         spawnPresentation(gPresentationTypeTable[presentationSelect])
         BASE:E("presentation selected")
     end
+
+
 
     local testRangeTimer=TIMER:New(testCallSelectPresentation):Start(2, 5, 100) -- timer calls function creating new groups every five seconds for testing
 
