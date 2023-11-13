@@ -4,7 +4,7 @@
 --- For ease of implementation, the centre from which spawn locations are derived is set as a ship or airbase object
 --- The characteristics of a given presentation are stored in an array of format: {presentationName, num aircraft {vec3 locationOne}, {vec3 locationTwo}, ..}
 --- Presentations will be spawned on a bearing from the centre point and with a semi-randomly determined heading
---- Inspiration for this script drawn from AIC classes run by DCS Academy
+--- Inspiration for this script drawn from AIC classes formerly run by DCS Academy
 --- Charles T. Wild (Walrus) 2023
 ---
 
@@ -14,6 +14,8 @@
     BASE:TraceClass("GROUP")
 
     --MESSAGE:New(gAircraftTypeTable[1][1]):ToAll()
+
+    local airInterceptTrainer = {}
 
     --- helper functions
 
@@ -30,8 +32,11 @@
     -- returns a random altitude from the range passed as min and max arguments
     local function randomAltitude(min, max)
         if min == nil then
+            BASE:E(tostring(gMinAltitude) .. " " .. tostring(gMaxAltitude))
             return math.random(gMinAltitude, gMaxAltitude)
+
         else
+            BASE:E(tostring(min) .. " " .. tostring(max))
             return math.random(min, max)
         end
     end
@@ -84,12 +89,13 @@
     BASE:E("above gCentre")
     gCentre = POINT_VEC2:New(36199, 268314) -- centre from which spawn locations will be derived. Defined arbitrarily and does not couple script to a particular map. Current value corresponds roughly to centre of the Syria map
     BASE:E("below gCentre")
+    gBomberSpawn = ZONE:FindByName("BomberSpawn")
     gMaxGroupSize = 4
     gMinGroupSize = 1
     gMaxSpawnRange = nmToMetres(200) -- max range from gCentre at which groups can be spawned
     gMinSpawnRange = nmToMetres(100) -- min range ditto above
-    gMaxAltitude = ftToMetres(35000) -- max altitude at which a group can be spawned
-    gMinAltitude = ftToMetres(2500) -- min altitude ditto above
+    gMaxAltitude = ftToMetres(32000) -- max altitude at which a group can be spawned
+    gMinAltitude = ftToMetres(25000) -- min altitude ditto above
     gSpawnedCounter = 1 -- used to set index for new instances of GROUP in gPresentationTypeTable
 
     --- presentation, aircraft and spawned groups tables
@@ -107,15 +113,20 @@
     gAircraftTypeTable = {{"F-4", "fighter", "blue"}, {"F-5", "fighter", "blue"}, {"F-14", "fighter", "blue"},
                           {"F-15", "fighter", "blue"}, {"F-16", "fighter", "blue"}, {"F-18", "fighter", "blue"},
                           {"Fagot", "fighter", "red"}, {"Farmer", "fighter", "red"}, {"Fishbed", "fighter", "red"},
-                          {"Flogger", "fighter", "red"}, {"Fulcrum", "fighter", "red"}, {"Flanker", "fighter", "red"}}
+                          {"Flogger", "fighter", "red"}, {"Fulcrum", "fighter", "red"}, {"Flanker", "fighter", "red"},
+                          {"Bear", "bomber", "blue"}}
     gSpawnedTable = {}  -- will be filled with instances of GROUP objects as they are instantiated by spawnGroup function
+    gSpawnZoneTable = {ZONE:FindByName("Spawn Zone Hama"), ZONE:FindByName("Spawn Zone Palmyra"), ZONE:FindByName("Spawn Zone Abu al Duhur")}
+    gSpawnHeadingTable = {360, 45, 90, 135, 180, 270, 315}
     gSpawnMenuItems = {}
     gTypeMenuItems = {}
+    gZoneMenuItems = {}
+    gBearingMenuItems = {}
     gMenuForGroupItems = {} -- will contain menu instances to control all alive groups
 
     --- further helper functions requiring global variables
     -- randomly returns a string containing a group name (these MUST conform with group names in ME)
-    function randomAircraft()
+    local function randomAircraft()
         local selection = math.random(#gAircraftTypeTable)
         for i = 1, selection do
             if i == selection then
@@ -125,7 +136,7 @@
     end
 
     -- calculates random location and returns it as a POINT_VEC3 from origin, min and max range and bearing from origin arguments
-    function getRandomLocation(centre, min, max, bearing)
+    local function getRandomLocation(centre, min, max, bearing)
         local x = centre.x + randomDeltaX(bearing, min, max)
         local y = randomAltitude()
         local z = centre.y + randomDeltaZ(bearing, min, max)
@@ -133,8 +144,31 @@
         return locationObj
     end
 
+    local function selectLocationInZone(zone)
+        local spawnLocation = zone:GetRandomPointVec3()
+        spawnLocation:SetY(randomAltitude)
+        return spawnLocation
+    end
+
+    local function selectType(type)
+        BASE:E("selectType")
+        if type == nil then
+            return randomAircraft()
+        else
+            for i = 1, #gAircraftTypeTable do
+                if type == gAircraftTypeTable[i][1] then
+                    return type
+                end
+            end
+        end
+    end
+
+    local function setHeading(baseHeading)
+        return (baseHeading + math.random(-10, 10))
+    end
+
     -- unused test function
-    function checkAlive(group)
+    local function checkAlive(group)
         if group:IsAlive() == true then
             return true
         else
@@ -147,7 +181,7 @@
         BASE:E("spawnRandom")
         MESSAGE:New("spawnRandom", 40):ToAll()
         local spawnPoint = getRandomLocation()
-        spawnGroup(spawnPoint)
+        spawnGroup(spawnPoint, 250, "F-15")
     end
 
     --- functions to calculate spawn parameters for new groups
@@ -172,28 +206,12 @@
 
     function spawnGroup(location, heading, type)
         local newGroup = SPAWN:NewWithAlias(type, "AIC Group " .. gSpawnedCounter)
-        newGroup:InitHeading(heading)
-        newGroup:InitGroupHeading(heading)
-        if gSpawnedTable[1] == nil then -- Check if table is empty and add reference to new group in first element if it is
-            BASE:E("table empty")
-            gSpawnedTable[1] = newGroup:SpawnFromPointVec3(location)
-            setWaypoint(gSpawnedTable[1], heading, location)
-        else                            -- if table is not empty, reference will be created at element corresponding to current value of gSpawnedCounter
+        newGroup:InitGroupHeading(heading)         -- if table is not empty, reference will be created at element corresponding to current value of gSpawnedCounter
             BASE:E("table not empty")
-            gSpawnedCounter = gSpawnedCounter + 1
-            gSpawnedTable[gSpawnedCounter] = newGroup:SpawnFromPointVec3(location)
-            setWaypoint(gSpawnedTable[gSpawnedCounter], heading, location)
-        end
-        BASE:E(gSpawnedTable[gSpawnedCounter]:GetPositionVec3())
-    end
-
-    -- unused test function
-    function selectPresentation(presentation)
-        for i = 1, #gPresentationTypeTable do
-            if gPresentationTypeTable[i] == presentation then
-                return gPresentationTypeTable[i]
-            end
-        end
+        gSpawnedTable[gSpawnedCounter] = newGroup:SpawnFromPointVec3(location)
+        setWaypoint(gSpawnedTable[gSpawnedCounter], heading, location)
+        gSpawnedCounter = gSpawnedCounter + 1
+        --BASE:E(gSpawnedTable[gSpawnedCounter]:GetPositionVec3())
     end
 
     function spawnPresentation(type, selectedPresentation, location, groupHeadingArg)
@@ -219,43 +237,48 @@
         MESSAGE:New(selectedPresentation[2] .. "-group " .. selectedPresentation[1] .. " presentation spawned"):ToAll()
     end
 
-    function selectType(type, presentation)
-        BASE:E("selectType")
-        --[[type = argTable[1]
-        presentation = argTable[2]--]]
-        --BASE:E(argTable[1] .. " " .. argTable[2])
-        if type == nil then
-            type = randomAircraft()
-            spawnPresentation(type, presentation)
-        else
-            for i = 1, #gAircraftTypeTable do
-                if type == gAircraftTypeTable[i][1] then
-                    spawnPresentation(type, presentation)
-                    BASE:E("type selected")
-                    break
+
+
+    function spawnHelper(type, presentation, zone, heading)
+        spawnPresentation(selectType(type), presentation, selectLocationInZone(zone), setHeading(heading))
+    end
+
+
+    --local testRangeTimer=TIMER:New(selectType(nil, gPresentationTypeTable[1])):Start(2, 5, 100) -- timer calls function creating new groups every five seconds for testing
+
+    --- Build F10 Menu
+    function buildPresentationMenu()
+        menuAIC = MENU_COALITION:New(coalition.side.BLUE, "Manage Groups and Presentations") -- top level menu (under F10)
+        local menuItemPresentation
+        local menuItemType
+        local menuItemZone
+        local menuItemHeading
+        for i = 1, #gPresentationTypeTable do
+            menuItemPresentation = MENU_COALITION:New(coalition.side.BLUE, "Spawn " .. tostring(gPresentationTypeTable[i][2]) .. "-Group " .. gPresentationTypeTable[i][1], menuAIC)
+            gSpawnMenuItems[i] = menuItemPresentation
+            for j = 1, #gAircraftTypeTable do
+                menuItemType = MENU_COALITION:New(coalition.side.BLUE, gAircraftTypeTable[j][1], menuItemPresentation)
+                gTypeMenuItems[j] = menuItemType
+                for k = 1, #gSpawnZoneTable do
+                    menuItemZone = MENU_COALITION:New(coalition.side.BLUE, "Spawn in " .. gSpawnZoneTable[k]:GetName(), menuItemType)
+                    gZoneMenuItems[k] = menuItemZone
+                    for l = 1, # gSpawnHeadingTable do
+                        menuItemHeading = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Set Spawn Heading " .. tostring(gSpawnHeadingTable[l]), menuItemZone,
+                                spawnHelper, gAircraftTypeTable[j][1], gPresentationTypeTable[i], gSpawnZoneTable[k], gSpawnHeadingTable[l])
+                        gBearingMenuItems[l] = menuItemHeading
+                    end
                 end
             end
         end
     end
 
-    --local testRangeTimer=TIMER:New(testCallSelectPresentation):Start(2, 5, 100) -- timer calls function creating new groups every five seconds for testing
+    function buildInterceptTargetMenu()
 
-    --- F10 Menu
-
-    menuAIC = MENU_COALITION:New(coalition.side.BLUE, "Manage Groups and Presentations") -- top level menu (under F10)
-
-    function buildPresentationMenu()
-        local menuItemPresentation
-        local menuItemType
-        for i = 1, #gPresentationTypeTable do
-            menuItemPresentation = MENU_COALITION:New(coalition.side.BLUE, "Spawn " .. tostring(gPresentationTypeTable[i][2]) .. "-Group " .. gPresentationTypeTable[i][1], menuAIC)
-            gSpawnMenuItems[i] = menuItemPresentation
-            for j = 1, #gAircraftTypeTable do
-                menuItemType = MENU_COALITION_COMMAND:New(coalition.side.BLUE, gAircraftTypeTable[j][1], menuItemPresentation, selectType,
-                        gAircraftTypeTable[j][1], gPresentationTypeTable[i])
-                gTypeMenuItems[j] = menuItemType
-            end
-        end
     end
 
-    buildPresentationMenu()
+    function main()
+        buildPresentationMenu()
+        return 0
+    end
+
+    main()
