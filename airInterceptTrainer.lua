@@ -8,6 +8,8 @@
 --- Charles T. Wild (Walrus) 2023
 ---
 
+    -- Vec3 function coalition.getMainRefPoint(enum coalition.side coalition) function call returning bullseye as a Vec3
+
     BASE:TraceOnOff(true)
     BASE:TraceLevel(1)
     BASE:TraceClass("SPAWN")
@@ -76,6 +78,16 @@
         end
     end
 
+    -- calculates the relative position of one object possessing a position from another i.e. the parameters bearingFromOrigin and separation represent the hypotenuse of the triangle /n
+    -- having as its centre the object passed as origin. Returns new position as a POINT_VEC3
+    function calculateOffsetPos(bearingFromOrigin, origin, separation)
+        local z = origin.z + (separation * math.sin(math.rad(bearingFromOrigin)))
+        local y = randomAltitude()
+        local x = origin.x + (separation * math.cos(math.rad(bearingFromOrigin)))
+        local locationObj = POINT_VEC3:New(x, y, z)
+        return locationObj
+    end
+
     -- unused; calculates offset between two bearings; if 180 is passed as either argument, will calculate reciprocal
     local function bearingFrom(presentationBearing, heading)
         if presentationBearing + heading == 360 then
@@ -85,9 +97,22 @@
         end
     end
 
-    --- globals
+    -- return location of USS Theodore Roosevelt
+    local function getRooseveltLocation()
+        return POINT_VEC3:NewFromVec3(GROUP:FindByName("USS Theodore Roosevelt"):GetVec3())
+    end
+
+    local function initSpawnZoneLocation(zoneName, zoneUnit, zoneRadius, zoneOffsetAngle, zoneOffsetRange)
+
+        return ZONE_UNIT:New(zoneName, zoneUnit, zoneRadius, {calculateOffsetPos(zoneOffsetAngle, gRooseveltLocation, zoneOffsetRange).x,
+                                                              calculateOffsetPos(zoneOffsetAngle, gRooseveltLocation, zoneOffsetRange).z})
+    end
+
+--- globals
     BASE:E("above gCentre")
     gCentre = POINT_VEC2:New(36199, 268314) -- centre from which spawn locations will be derived. Defined arbitrarily and does not couple script to a particular map. Current value corresponds roughly to centre of the Syria map
+    gRooseveltLocation = getRooseveltLocation()
+    gRoosevelt = UNIT:FindByName("USS Theodore Roosevelt")
     BASE:E("below gCentre")
     gBomberSpawn = ZONE:FindByName("BomberSpawn")
     gMaxGroupSize = 4
@@ -110,13 +135,14 @@
                                  {"Champagne", 4, nmToMetres(7), nmToMetres(17), {45, 180, 315}},
                                  --[[{"2Stack"}, {"3Stack"}, {"Box"}--]]}
 
-    gAircraftTypeTable = {{"F-4", "fighter", "blue"}, {"F-5", "fighter", "blue"}, {"F-14", "fighter", "blue"},
-                          {"F-15", "fighter", "blue"}, {"F-16", "fighter", "blue"}, {"F-18", "fighter", "blue"},
+    gAircraftTypeTable = {--[[{"F-4", "fighter", "blue"}, {"F-5", "fighter", "blue"}, {"F-14", "fighter", "blue"},
+                          {"F-15", "fighter", "blue"}, {"F-16", "fighter", "blue"}, {"F-18", "fighter", "blue"},--]]
                           {"Fagot", "fighter", "red"}, {"Farmer", "fighter", "red"}, {"Fishbed", "fighter", "red"},
-                          {"Flogger", "fighter", "red"}, {"Fulcrum", "fighter", "red"}, {"Flanker", "fighter", "red"},
-                          {"Bear", "bomber", "blue"}}
+                          {"Flogger", "fighter", "red"}, {"Foxbat", "fighter", "red"}, {"Fulcrum", "fighter", "red"},
+                          {"Flanker", "fighter", "red"}, {"Foxhound", "fighter", "red"}, {"Bear", "bomber", "red"},
+                          {"Backfire", "fighter", "red"}}
     gSpawnedTable = {}  -- will be filled with instances of GROUP objects as they are instantiated by spawnGroup function
-    gSpawnZoneTable = {ZONE:FindByName("Spawn Zone Hama"), ZONE:FindByName("Spawn Zone Palmyra"), ZONE:FindByName("Spawn Zone Abu al Duhur")}
+    gSpawnZoneTable = {initSpawnZoneLocation("Spawn Zone East", gRoosevelt, nmToMetres(5), 90, nmToMetres(250))}
     gSpawnHeadingTable = {360, 45, 90, 135, 180, 270, 315}
     gSpawnMenuItems = {}
     gTypeMenuItems = {}
@@ -185,24 +211,15 @@
     end
 
     --- functions to calculate spawn parameters for new groups
-    -- calculates the relative position of one object possessing a position from another i.e. the parameters bearingFromOrigin and separation represent the hypotenuse of the triangle /n
-    -- having as its centre the object passed as origin. Returns new position as a POINT_VEC3
-    function calculateOffsetPos(bearingFromOrigin, origin, separation)
-        local z = origin.z + (separation * math.sin(math.rad(bearingFromOrigin)))
-        local y = randomAltitude()
-        local x = origin.x + (separation * math.cos(math.rad(bearingFromOrigin)))
-        local locationObj = POINT_VEC3:New(x, y, z)
-        return locationObj
-    end
+
 
     -- helper function using calculateOffsetPos() to set a waypoint for group argument on the passed bearing
     function setWaypoint(group, bearing, origin, range, speed)
         BASE:E("setWaypoint")
-        local newWaypoint = calculateOffsetPos(bearing, origin, 100000)
+        local newWaypoint = calculateOffsetPos(bearing, origin, 250000)
         group:RouteAirTo(newWaypoint:GetCoordinate(), POINT_VEC3.RoutePointAltType.BARO, POINT_VEC3.RoutePointType.TurningPoint, POINT_VEC3.RoutePointAction.TurningPoint, 800, 1)
         BASE:E("waypoint set")
     end
-
 
     function spawnGroup(location, heading, type)
         local newGroup = SPAWN:NewWithAlias(type, "AIC Group " .. gSpawnedCounter)
@@ -237,8 +254,6 @@
         MESSAGE:New(selectedPresentation[2] .. "-group " .. selectedPresentation[1] .. " presentation spawned"):ToAll()
     end
 
-
-
     function spawnHelper(type, presentation, zone, heading)
         spawnPresentation(selectType(type), presentation, selectLocationInZone(zone), setHeading(heading))
     end
@@ -270,6 +285,10 @@
                 end
             end
         end
+    end
+
+    function buildMenu()
+
     end
 
     function buildInterceptTargetMenu()
