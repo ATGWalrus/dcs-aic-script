@@ -103,9 +103,9 @@
     end
 
     local function initSpawnZoneLocation(zoneName, zoneUnit, zoneRadius, zoneOffsetAngle, zoneOffsetRange)
-
-        return ZONE_UNIT:New(zoneName, zoneUnit, zoneRadius, {calculateOffsetPos(zoneOffsetAngle, gRooseveltLocation, zoneOffsetRange).x,
-                                                              calculateOffsetPos(zoneOffsetAngle, gRooseveltLocation, zoneOffsetRange).z})
+        local tempOffset = calculateOffsetPos(zoneOffsetAngle, getRooseveltLocation, zoneOffsetRange)
+        return ZONE_UNIT:New(zoneName, zoneUnit, zoneRadius, {tempOffset.GetX,
+                                                              calculateOffsetPos(zoneOffsetAngle, gRooseveltLocation, zoneOffsetRange):GetZ()})
     end
 
 --- globals
@@ -277,7 +277,7 @@
                 for k = 1, #gSpawnZoneTable do
                     menuItemZone = MENU_COALITION:New(coalition.side.BLUE, "Spawn in " .. gSpawnZoneTable[k]:GetName(), menuItemType)
                     gZoneMenuItems[k] = menuItemZone
-                    for l = 1, # gSpawnHeadingTable do
+                    for l = 1, #gSpawnHeadingTable do
                         menuItemHeading = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Set Spawn Heading " .. tostring(gSpawnHeadingTable[l]), menuItemZone,
                                 spawnHelper, gAircraftTypeTable[j][1], gPresentationTypeTable[i], gSpawnZoneTable[k], gSpawnHeadingTable[l])
                         gBearingMenuItems[l] = menuItemHeading
