@@ -104,8 +104,7 @@
 
     local function initSpawnZoneLocation(zoneName, zoneUnit, zoneRadius, zoneOffsetAngle, zoneOffsetRange)
         local tempOffset = calculateOffsetPos(zoneOffsetAngle, getRooseveltLocation, zoneOffsetRange)
-        return ZONE_UNIT:New(zoneName, zoneUnit, zoneRadius, {tempOffset.GetX,
-                                                              calculateOffsetPos(zoneOffsetAngle, gRooseveltLocation, zoneOffsetRange):GetZ()})
+        return ZONE_UNIT:New(zoneName, zoneUnit, zoneRadius, {tempOffset.GetX, tempOffset.GetZ})
     end
 
 --- globals
