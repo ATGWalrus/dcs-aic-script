@@ -288,6 +288,17 @@
 
     --local testRangeTimer=TIMER:New(selectType(nil, gPresentationTypeTable[1])):Start(2, 5, 100) -- timer calls function creating new groups every five seconds for testing
 
+    --- functions for despawning groups
+    -- iteratively deletes all spawned groups
+    function removeAll()
+        for i = 1, #gSpawnedTable do
+            if gSpawnedTable[i] ~= nil then
+                gSpawnedTable[i]:Destroy(false, 1)
+            end
+            gSpawnedCounter = gSpawnedCounter - 1
+        end
+    end
+
     --- Build F10 Menu
     function buildPresentationMenu()
         menuAIC = MENU_COALITION:New(coalition.side.BLUE, "Manage Groups and Presentations") -- top level menu (under F10)
@@ -312,6 +323,8 @@
                 end
             end
         end
+        deleteMenu = MENU_COALITION:New(coalition.side.BLUE, "Delete Groups", menuAIC)
+        deleteAllMenu = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Delete Groups", deleteMenu, removeAll)
     end
 
     function buildMenu()
