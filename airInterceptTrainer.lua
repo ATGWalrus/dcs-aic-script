@@ -1,9 +1,10 @@
 ---
 ---
 --- Script to spawn and manage groups configured in specific formations and multi-group presentations
---- For ease of implementation, the centre from which spawn locations are derived is set as a ship or airbase object
---- The characteristics of a given presentation are stored in an array of format: {presentationName, num aircraft {vec3 locationOne}, {vec3 locationTwo}, ..}
---- Presentations will be spawned on a bearing from the centre point and with a semi-randomly determined heading
+--- As currently implemented, spawn zones are calculated as offsets from the Roosevelt
+--- The characteristics of a given presentation are stored in an array of format: {presentationName, num aircraft, minimum range between spawned groups, max range, {bearings from first group}}
+--- Presentations will be spawned in a selected zone and on a heading within +-10 degrees of that specified
+--- Each group spawned, as well as each menu item generated are stored in tables
 --- Inspiration for this script drawn from AIC classes formerly run by DCS Academy
 --- Charles T. Wild (Walrus) 2023
 ---
@@ -102,6 +103,7 @@
         return POINT_VEC3:NewFromVec3(GROUP:FindByName("USS Theodore Roosevelt"):GetVec3())
     end
 
+    -- Called from gSpawnZoneTable. Instantiates ZONE_UNIT object from arguments passed from elements of table
     local function initSpawnZoneLocation(zoneName, zoneUnit, zoneRadius, zoneOffsetAngle, zoneOffsetRange)
         local tempOffset = calculateOffsetPos(zoneOffsetAngle, getRooseveltLocation, zoneOffsetRange)
         return ZONE_UNIT:New(zoneName, zoneUnit, zoneRadius, {tempOffset.GetX, tempOffset.GetZ})
@@ -216,6 +218,23 @@
 
     --- functions to calculate spawn parameters for new groups
 
+    -- helper function for spawnPresentation() - checks if a location has been passed and randomly generates one if not
+    local function checkLocation(location)
+        if location == nil then
+            return getRandomLocation(gCentre, gMinSpawnRange, gMaxSpawnRange, randomBearing())
+        else
+            return location
+        end
+    end
+
+    -- helper function for spawnPresentation() - checks if a heading has been passed and randomly generates one if not
+    local function checkHeading(heading)
+        if heading == nil then
+            return randomBearing
+        else
+            return heading
+        end
+    end
 
     -- helper function using calculateOffsetPos() to set a waypoint for group argument on the passed bearing
     function setWaypoint(group, bearing, origin, range, speed)
@@ -228,27 +247,18 @@
     function spawnGroup(location, heading, type)
         local newGroup = SPAWN:NewWithAlias(type, "AIC Group " .. gSpawnedCounter)
         newGroup:InitGroupHeading(heading)         -- if table is not empty, reference will be created at element corresponding to current value of gSpawnedCounter
-            BASE:E("table not empty")
+        BASE:E("table not empty")
         gSpawnedTable[gSpawnedCounter] = newGroup:SpawnFromPointVec3(location)
         setWaypoint(gSpawnedTable[gSpawnedCounter], heading, location)
         gSpawnedCounter = gSpawnedCounter + 1
         --BASE:E(gSpawnedTable[gSpawnedCounter]:GetPositionVec3())
     end
 
-    function spawnPresentation(type, selectedPresentation, location, groupHeadingArg)
+    -- spawns first group in a presentation (via spawnGroup()) and iteratively spawns remaining groups in presentation
+    function spawnPresentation(type, selectedPresentation, origin, groupHeadingArg)
         BASE:E("spawnPresentation")
-        local leadPosition
-        local groupHeading
-        if location == nil then
-            leadPosition = getRandomLocation(gCentre, gMinSpawnRange, gMaxSpawnRange, randomBearing())
-        else
-            leadPosition = location
-        end
-        if groupHeadingArg == nil then
-            groupHeading = randomBearing()
-        else
-            groupHeading = groupHeadingArg
-        end
+        local leadPosition = checkLocation(origin)
+        local groupHeading = checkHeading(groupHeadingArg)
         local separation = randomRange(selectedPresentation[3], selectedPresentation[4])
         spawnGroup(leadPosition, groupHeading, type)
         for i = 1, #selectedPresentation[5] do
@@ -261,7 +271,6 @@
     function spawnHelper(type, presentation, zone, heading)
         spawnPresentation(selectType(type), presentation, selectLocationInZone(zone), setHeading(heading))
     end
-
 
     --local testRangeTimer=TIMER:New(selectType(nil, gPresentationTypeTable[1])):Start(2, 5, 100) -- timer calls function creating new groups every five seconds for testing
 
