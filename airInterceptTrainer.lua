@@ -82,7 +82,9 @@
     -- calculates the relative position of one object possessing a position from another i.e. the parameters bearingFromOrigin and separation represent the hypotenuse of the triangle /n
     -- having as its centre the object passed as origin. Returns new position as a POINT_VEC3
     function calculateOffsetPos(bearingFromOrigin, origin, separation)
+        MESSAGE:New("origin.z: " .. tostring(origin.z)):ToAll()
         local z = origin.z + (separation * math.sin(math.rad(bearingFromOrigin)))
+        MESSAGE:New("output z: " .. tostring(z)):ToAll()
         local y = randomAltitude()
         local x = origin.x + (separation * math.cos(math.rad(bearingFromOrigin)))
         local locationObj = POINT_VEC3:New(x, y, z)
@@ -99,20 +101,13 @@
     end
 
     -- return location of USS Theodore Roosevelt
-    local function getRooseveltLocation()
+    function getRooseveltLocation()
         return POINT_VEC3:NewFromVec3(GROUP:FindByName("USS Theodore Roosevelt"):GetVec3())
-    end
-
-    -- Called from gSpawnZoneTable. Instantiates ZONE_UNIT object from arguments passed from elements of table
-    local function initSpawnZoneLocation(zoneName, zoneUnit, zoneRadius, zoneOffsetAngle, zoneOffsetRange)
-        local tempOffset = calculateOffsetPos(zoneOffsetAngle, getRooseveltLocation, zoneOffsetRange)
-        return ZONE_UNIT:New(zoneName, zoneUnit, zoneRadius, {tempOffset.GetX, tempOffset.GetZ})
     end
 
 --- globals
     BASE:E("above gCentre")
     gCentre = POINT_VEC2:New(36199, 268314) -- centre from which spawn locations will be derived. Defined arbitrarily and does not couple script to a particular map. Current value corresponds roughly to centre of the Syria map
-    gRooseveltLocation = getRooseveltLocation()
     gRoosevelt = UNIT:FindByName("USS Theodore Roosevelt")
     BASE:E("below gCentre")
     gBomberSpawn = ZONE:FindByName("BomberSpawn")
@@ -142,12 +137,6 @@
                           {"Flogger", "fighter", "red"}, {"Foxbat", "fighter", "red"}, {"Fulcrum", "fighter", "red"},
                           {"Flanker", "fighter", "red"}, {"Foxhound", "fighter", "red"}, {"Bear", "bomber", "red"},
                           {"Backfire", "fighter", "red"}}
-    gSpawnZoneTable = {initSpawnZoneLocation("Spawn Zone East", gRoosevelt, nmToMetres(5), 90, nmToMetres(250)),
-                       initSpawnZoneLocation("Spawn Zone South", gRoosevelt, nmToMetres(5), 180, nmToMetres(250)),
-                       initSpawnZoneLocation("Spawn Zone South-Southwest", gRoosevelt, nmToMetres(5), 202.5, nmToMetres(250)),
-                       initSpawnZoneLocation("Spawn Zone Southwest", gRoosevelt, nmToMetres(5), 225, nmToMetres(250)),
-                       initSpawnZoneLocation("Spawn Zone West", gRoosevelt, nmToMetres(5), 270, nmToMetres(250)),
-                       initSpawnZoneLocation("Spawn Zone North", gRoosevelt, nmToMetres(5), 360, nmToMetres(250))}
     gSpawnHeadingTable = {360, 45, 90, 135, 180, 270, 315}
     gSpawnedTable = {}  -- will be filled with instances of GROUP objects as they are instantiated by spawnGroup function
     gSpawnMenuItems = {}
@@ -156,7 +145,32 @@
     gBearingMenuItems = {}
     gMenuForGroupItems = {} -- will contain menu instances to control all alive groups
 
-    --- further helper functions requiring global variables
+    --- further helper functions requiring access to global variables
+    -- Called from gSpawnZoneTable. Instantiates ZONE_UNIT object from arguments passed from elements of table
+    --[[function initSpawnZoneLocation(zoneName, zoneUnit, zoneRadius, zoneOffsetAngle, zoneOffsetRange)
+        local tempOffset = calculateOffsetPos(zoneOffsetAngle, getRooseveltLocation, zoneOffsetRange)
+
+        return ZONE_UNIT:New(zoneName, zoneUnit, zoneRadius, {tempOffset.x, tempOffset.z})
+    end]]--
+
+    -- elements are initialised by initSpawnZones(), into which data from table is passed and which replaces each element with a ZONE_UNIT iteratively
+    gSpawnZoneTable = {{"Spawn Zone East", gRoosevelt, nmToMetres(5), 90, nmToMetres(225)},
+                       {"Spawn Zone South", gRoosevelt, nmToMetres(5), 180, nmToMetres(225)},
+                       {"Spawn Zone South-Southwest", gRoosevelt, nmToMetres(5), 202.5, nmToMetres(225)},
+                       {"Spawn Zone Southwest", gRoosevelt, nmToMetres(5), 225, nmToMetres(225)},
+                       {"Spawn Zone West", gRoosevelt, nmToMetres(5), 270, nmToMetres(225)},
+                       {"Spawn Zone North", gRoosevelt, nmToMetres(5), 360, nmToMetres(225)}}
+
+
+    function initSpawnZones()
+        for i = 1, #gSpawnZoneTable do
+            local tempZone = ZONE_UNIT:New(gSpawnZoneTable[i][1], gSpawnZoneTable[i][2], gSpawnZoneTable[i][3],
+                    {rho = nmToMetres(200), theta = gSpawnZoneTable[i][4], relative_to_unit = false})
+            gSpawnZoneTable[i] = tempZone
+            gSpawnZoneTable[i]:DrawZone(-1, {1, 0, 0}, 1, {1, 0, 0}, 0.15, 1, true)
+        end
+    end
+
     -- randomly returns a string containing a group name (these MUST conform with group names in ME)
     local function randomAircraft()
         local selection = math.random(#gAircraftTypeTable)
@@ -178,7 +192,7 @@
 
     local function selectLocationInZone(zone)
         local spawnLocation = zone:GetRandomPointVec3()
-        spawnLocation:SetY(randomAltitude)
+        spawnLocation.y = (10000)
         return spawnLocation
     end
 
@@ -292,7 +306,7 @@
                     gZoneMenuItems[k] = menuItemZone
                     for l = 1, #gSpawnHeadingTable do
                         menuItemHeading = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Set Spawn Heading " .. tostring(gSpawnHeadingTable[l]), menuItemZone,
-                                spawnHelper, gAircraftTypeTable[j][1], gPresentationTypeTable[i], gSpawnZoneTable[k], gSpawnHeadingTable[l])
+                                spawnHelper, gAircraftTypeTable[j][1], gPresentationTypeTable[i],  gSpawnZoneTable[k], gSpawnHeadingTable[l])
                         gBearingMenuItems[l] = menuItemHeading
                     end
                 end
@@ -309,6 +323,7 @@
     end
 
     function main()
+        initSpawnZones()
         buildPresentationMenu()
         return 0
     end
