@@ -140,9 +140,14 @@
                           {"Flogger", "fighter", "red"}, {"Foxbat", "fighter", "red"}, {"Fulcrum", "fighter", "red"},
                           {"Flanker", "fighter", "red"}, {"Foxhound", "fighter", "red"}, {"Bear", "bomber", "red"},
                           {"Backfire", "fighter", "red"}}
-    gSpawnedTable = {}  -- will be filled with instances of GROUP objects as they are instantiated by spawnGroup function
-    gSpawnZoneTable = {initSpawnZoneLocation("Spawn Zone East", gRoosevelt, nmToMetres(5), 90, nmToMetres(250))}
+    gSpawnZoneTable = {initSpawnZoneLocation("Spawn Zone East", gRoosevelt, nmToMetres(5), 90, nmToMetres(250)),
+                       initSpawnZoneLocation("Spawn Zone South", gRoosevelt, nmToMetres(5), 180, nmToMetres(250)),
+                       initSpawnZoneLocation("Spawn Zone South-Southwest", gRoosevelt, nmToMetres(5), 202.5, nmToMetres(250)),
+                       initSpawnZoneLocation("Spawn Zone Southwest", gRoosevelt, nmToMetres(5), 225, nmToMetres(250)),
+                       initSpawnZoneLocation("Spawn Zone West", gRoosevelt, nmToMetres(5), 270, nmToMetres(250)),
+                       initSpawnZoneLocation("Spawn Zone North", gRoosevelt, nmToMetres(5), 360, nmToMetres(250))}
     gSpawnHeadingTable = {360, 45, 90, 135, 180, 270, 315}
+    gSpawnedTable = {}  -- will be filled with instances of GROUP objects as they are instantiated by spawnGroup function
     gSpawnMenuItems = {}
     gTypeMenuItems = {}
     gZoneMenuItems = {}
