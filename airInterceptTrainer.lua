@@ -148,7 +148,7 @@
     gSpawnHeadingTable = {360, 45, 90, 135, 180, 270, 315}
     gROETable = {{"WEAPONS FREE", 0}, {"RETURN FIRE", 3}, {"WEAPON HOLD", 4}}
     gROTTable = {{"NO REACTION", 0}, {"PASSIVE DEFENCE", 1}, {"EVADE FIRE", 2}, {"BYPASS AND ESCAPE", 3}, {"ALLOW ABORT MISSION", 4}}
-    gECMTable = {{"NEVER USE", 0}, {"USE ONLY IF LOCKED BY RADAR", 1}, {"USE ONLY IF RADAR LOCK DETECTED", 2}, {"ALWAYS ON", 3}}
+    gECMTable = {{"NEVER USE", 0}, {"USE ONLY IF LOCKED BY RADAR", 1}, {"USE ONLY IF RADAR SCAN DETECTED", 2}, {"ALWAYS ON", 3}}
     gSpawnedTable = {}  -- will be filled with instances of GROUP objects as they are instantiated by spawnGroup function
     gSpawnMenuItems = {}
     gTypeMenuItems = {}
@@ -246,7 +246,7 @@
     -- helper function for spawnPresentation() - checks if a heading has been passed and randomly generates one if not
     local function checkHeading(heading)
         if heading == nil then
-            return randomBearing
+            return randomBearing()
         else
             return heading
         end
@@ -256,18 +256,32 @@
     -- iteratively deletes all spawned groups and associated menus
     function removeAll()
         for i = 1, #gSpawnedTable do
+            local tempIndex = gSpawnedTable[i][2]
             if gSpawnedTable[i] ~= nil then
-                removeGroup(gSpawnedTable[i], gMenuForGroupItems[i][1])
+                removeGroup(gSpawnedTable[i])
             end
-            gSpawnedCounter = gSpawnedCounter - 1
+            if gMenuForGroupItems[i] ~= nil then
+                removeMenu(gMenuForGroupItems[i])
+            end
+            --gSpawnedCounter = gSpawnedCounter - 1
         end
     end
 
     -- deletes group passed in and removes menu for that group
-    function removeGroup(thisGroup, deleteMenu, optionsMenu)
-        thisGroup:Destroy(false, 1)
-        thisMenu:Remove()
-        thisMenu:Refresh()
+    function removeGroup(thisGroup, menuTable)
+        thisGroup[1]:Destroy(false, 1)
+        removeMenu(menuTable)
+        thisGroup[2] = nil
+        groupOptionsMenu:Refresh()
+        deleteSingleMenu:Refresh()
+        groupOptionsMenu:Refresh()
+    end
+
+    function removeMenu(menuTable)
+        for i = 1, #menuTable - 1 do
+            menuTable[i]:Remove()
+        end
+        menuTable[#menuTable] = nil
     end
 
     function setROE(thisGroup, ROEVal)
@@ -275,7 +289,7 @@
     end
 
     function setROT(thisGroup, ROTVal)
-        thisGroup:OptionROT(thisGroup, ROTVal)
+        thisGroup:OptionROT(ROTVal)
     end
 
     function setECMUse(thisGroup, ECMVal)
@@ -302,9 +316,9 @@
         local newGroup = SPAWN:NewWithAlias(type, "AIC Group " .. type .. " " .. tostring(gSpawnedCounter))
         newGroup:InitGroupHeading(heading)         -- if table is not empty, reference will be created at element corresponding to current value of gSpawnedCounter
         BASE:E("table not empty")
-        gSpawnedTable[gSpawnedCounter] = newGroup:SpawnFromPointVec3(location)
-        gMenuForGroupItems[gSpawnedCounter] = buildGroupMenu(gSpawnedTable[gSpawnedCounter])
-        setWaypoint(gSpawnedTable[gSpawnedCounter], heading, location)
+        gSpawnedTable[gSpawnedCounter] = {newGroup:SpawnFromPointVec3(location), gSpawnedCounter}
+        gMenuForGroupItems[gSpawnedCounter] = buildGroupMenu(gSpawnedTable[gSpawnedCounter][1])
+        setWaypoint(gSpawnedTable[gSpawnedCounter][1], heading, location)
         gSpawnedCounter = gSpawnedCounter + 1
         --BASE:E(gSpawnedTable[gSpawnedCounter]:GetPositionVec3())
     end
@@ -360,11 +374,11 @@
 
     -- add menu items to delete group, change ROE, ROT and ECM use
     function buildGroupMenu(thisGroup)
+        local index = gSpawnedCounter
         local tempGroupMenu = MENU_COALITION:New(coalition.side.BLUE, "Manage " .. thisGroup:GetName(), groupOptionsMenu)
         local tempROEMenu = MENU_COALITION:New(coalition.side.BLUE, "Set ROE", tempGroupMenu)
         local tempROTMenu = MENU_COALITION:New(coalition.side.BLUE, "Set ROT", tempGroupMenu)
         local tempECMMenu = MENU_COALITION:New(coalition.side.BLUE, "Set ECM Use", tempGroupMenu)
-        local tempDeleteMenu = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Delete " .. thisGroup:GetName(), deleteSingleMenu, removeGroup, thisGroup, tempDeleteMenu)
         local menuSet = {tempGroupMenu, tempROEMenu, tempROTMenu, tempECMMenu, tempDeleteMenu}
         for i = 1, #gROETable do
             menuSet[#menuSet + i] = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Set ROE " .. gROETable[i][1], menuSet[2], setROE, thisGroup, gROETable[i][2])
@@ -375,6 +389,9 @@
         for k = 1, #gECMTable do
             menuSet[#menuSet + k] = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Set ECM Use " .. gECMTable[k][1], menuSet[4], setECMUse, thisGroup, gECMTable[k][2])
         end
+        local tempDeleteMenu = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Delete " .. thisGroup:GetName(), deleteSingleMenu, removeGroup, thisGroup, menuSet)
+        table.insert(menuSet, tempDeleteMenu)
+        table.insert(menuSet, index)
         return menuSet
     end
 
