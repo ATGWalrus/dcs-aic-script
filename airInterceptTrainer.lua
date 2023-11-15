@@ -131,6 +131,14 @@
                                  {"Champagne", 4, nmToMetres(7), nmToMetres(17), {45, 180, 315}},
                                  --[[{"2Stack"}, {"3Stack"}, {"Box"}--]]}
 
+    -- elements are initialised by initSpawnZones(), into which data from table is passed and which replaces each element with a ZONE_UNIT iteratively
+    gSpawnZoneTable = {{"Spawn Zone East", gRoosevelt, nmToMetres(5), 90, nmToMetres(225)},
+                       {"Spawn Zone South", gRoosevelt, nmToMetres(5), 180, nmToMetres(225)},
+                       {"Spawn Zone South-Southwest", gRoosevelt, nmToMetres(5), 202.5, nmToMetres(225)},
+                       {"Spawn Zone Southwest", gRoosevelt, nmToMetres(5), 225, nmToMetres(225)},
+                       {"Spawn Zone West", gRoosevelt, nmToMetres(5), 270, nmToMetres(225)},
+                       {"Spawn Zone North", gRoosevelt, nmToMetres(5), 360, nmToMetres(225)}}
+
     gAircraftTypeTable = {--[[{"F-4", "fighter", "blue"}, {"F-5", "fighter", "blue"}, {"F-14", "fighter", "blue"},
                           {"F-15", "fighter", "blue"}, {"F-16", "fighter", "blue"}, {"F-18", "fighter", "blue"},--]]
                           {"Fagot", "fighter", "red"}, {"Farmer", "fighter", "red"}, {"Fishbed", "fighter", "red"},
@@ -138,6 +146,9 @@
                           {"Flanker", "fighter", "red"}, {"Foxhound", "fighter", "red"}, {"Bear", "bomber", "red"},
                           {"Backfire", "fighter", "red"}}
     gSpawnHeadingTable = {360, 45, 90, 135, 180, 270, 315}
+    gROETable = {{"WEAPONS FREE", 0}, {"RETURN FIRE", 3}, {"WEAPON HOLD", 4}}
+    gROTTable = {{"NO REACTION", 0}, {"PASSIVE DEFENCE", 1}, {"EVADE FIRE", 2}, {"BYPASS AND ESCAPE", 3}, {"ALLOW ABORT MISSION", 4}}
+    gECMTable = {{"NEVER USE", 0}, {"USE ONLY IF LOCKED BY RADAR", 1}, {"USE ONLY IF RADAR LOCK DETECTED", 2}, {"ALWAYS ON", 3}}
     gSpawnedTable = {}  -- will be filled with instances of GROUP objects as they are instantiated by spawnGroup function
     gSpawnMenuItems = {}
     gTypeMenuItems = {}
@@ -152,15 +163,6 @@
 
         return ZONE_UNIT:New(zoneName, zoneUnit, zoneRadius, {tempOffset.x, tempOffset.z})
     end]]--
-
-    -- elements are initialised by initSpawnZones(), into which data from table is passed and which replaces each element with a ZONE_UNIT iteratively
-    gSpawnZoneTable = {{"Spawn Zone East", gRoosevelt, nmToMetres(5), 90, nmToMetres(225)},
-                       {"Spawn Zone South", gRoosevelt, nmToMetres(5), 180, nmToMetres(225)},
-                       {"Spawn Zone South-Southwest", gRoosevelt, nmToMetres(5), 202.5, nmToMetres(225)},
-                       {"Spawn Zone Southwest", gRoosevelt, nmToMetres(5), 225, nmToMetres(225)},
-                       {"Spawn Zone West", gRoosevelt, nmToMetres(5), 270, nmToMetres(225)},
-                       {"Spawn Zone North", gRoosevelt, nmToMetres(5), 360, nmToMetres(225)}}
-
 
     function initSpawnZones()
         for i = 1, #gSpawnZoneTable do
@@ -250,6 +252,44 @@
         end
     end
 
+    --- functions for deleting groups
+    -- iteratively deletes all spawned groups and associated menus
+    function removeAll()
+        for i = 1, #gSpawnedTable do
+            if gSpawnedTable[i] ~= nil then
+                removeGroup(gSpawnedTable[i], gMenuForGroupItems[i][1])
+            end
+            gSpawnedCounter = gSpawnedCounter - 1
+        end
+    end
+
+    -- deletes group passed in and removes menu for that group
+    function removeGroup(thisGroup, deleteMenu, optionsMenu)
+        thisGroup:Destroy(false, 1)
+        thisMenu:Remove()
+        thisMenu:Refresh()
+    end
+
+    function setROE(thisGroup, ROEVal)
+        thisGroup:OptionROE(ROEVal)
+    end
+
+    function setROT(thisGroup, ROTVal)
+        thisGroup:OptionROT(thisGroup, ROTVal)
+    end
+
+    function setECMUse(thisGroup, ECMVal)
+        if ECMVal == 3 then
+            thisGroup:OptionECM_AlwaysOn()
+        elseif ECMVal == 2 then
+            thisGroup:OptionECM_DetectedLockByRadar()
+        elseif ECMVal == 1 then
+            thisGroup:OptionECM_OnlyLockByRadar()
+        else
+            thisGroup:OptionECM_Never()
+        end
+    end
+
     -- helper function using calculateOffsetPos() to set a waypoint for group argument on the passed bearing
     function setWaypoint(group, bearing, origin, range, speed)
         BASE:E("setWaypoint")
@@ -259,10 +299,11 @@
     end
 
     function spawnGroup(location, heading, type)
-        local newGroup = SPAWN:NewWithAlias(type, "AIC Group " .. gSpawnedCounter)
+        local newGroup = SPAWN:NewWithAlias(type, "AIC Group " .. type .. " " .. tostring(gSpawnedCounter))
         newGroup:InitGroupHeading(heading)         -- if table is not empty, reference will be created at element corresponding to current value of gSpawnedCounter
         BASE:E("table not empty")
         gSpawnedTable[gSpawnedCounter] = newGroup:SpawnFromPointVec3(location)
+        gMenuForGroupItems[gSpawnedCounter] = buildGroupMenu(gSpawnedTable[gSpawnedCounter])
         setWaypoint(gSpawnedTable[gSpawnedCounter], heading, location)
         gSpawnedCounter = gSpawnedCounter + 1
         --BASE:E(gSpawnedTable[gSpawnedCounter]:GetPositionVec3())
@@ -286,28 +327,16 @@
         spawnPresentation(selectType(type), presentation, selectLocationInZone(zone), setHeading(heading))
     end
 
-    --local testRangeTimer=TIMER:New(selectType(nil, gPresentationTypeTable[1])):Start(2, 5, 100) -- timer calls function creating new groups every five seconds for testing
-
-    --- functions for despawning groups
-    -- iteratively deletes all spawned groups
-    function removeAll()
-        for i = 1, #gSpawnedTable do
-            if gSpawnedTable[i] ~= nil then
-                gSpawnedTable[i]:Destroy(false, 1)
-            end
-            gSpawnedCounter = gSpawnedCounter - 1
-        end
-    end
-
     --- Build F10 Menu
     function buildPresentationMenu()
         menuAIC = MENU_COALITION:New(coalition.side.BLUE, "Manage Groups and Presentations") -- top level menu (under F10)
+        spawnMenu = MENU_COALITION:New(coalition.side.BLUE, "Spawn a New Presentation")
         local menuItemPresentation
         local menuItemType
         local menuItemZone
         local menuItemHeading
         for i = 1, #gPresentationTypeTable do
-            menuItemPresentation = MENU_COALITION:New(coalition.side.BLUE, "Spawn " .. tostring(gPresentationTypeTable[i][2]) .. "-Group " .. gPresentationTypeTable[i][1], menuAIC)
+            menuItemPresentation = MENU_COALITION:New(coalition.side.BLUE, "Spawn " .. tostring(gPresentationTypeTable[i][2]) .. "-Group " .. gPresentationTypeTable[i][1], spawnMenu)
             gSpawnMenuItems[i] = menuItemPresentation
             for j = 1, #gAircraftTypeTable do
                 menuItemType = MENU_COALITION:New(coalition.side.BLUE, gAircraftTypeTable[j][1], menuItemPresentation)
@@ -324,7 +353,29 @@
             end
         end
         deleteMenu = MENU_COALITION:New(coalition.side.BLUE, "Delete Groups", menuAIC)
-        deleteAllMenu = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Delete Groups", deleteMenu, removeAll)
+        deleteAllMenu = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Delete All Groups", deleteMenu, removeAll)
+        deleteSingleMenu = MENU_COALITION:New(coalition.side.BLUE, "Delete a Group", deleteMenu)
+        groupOptionsMenu = MENU_COALITION:New(coalition.side.BLUE, "Set Group Options", menuAIC)
+    end
+
+    -- add menu items to delete group, change ROE, ROT and ECM use
+    function buildGroupMenu(thisGroup)
+        local tempGroupMenu = MENU_COALITION:New(coalition.side.BLUE, "Manage " .. thisGroup:GetName(), groupOptionsMenu)
+        local tempROEMenu = MENU_COALITION:New(coalition.side.BLUE, "Set ROE", tempGroupMenu)
+        local tempROTMenu = MENU_COALITION:New(coalition.side.BLUE, "Set ROT", tempGroupMenu)
+        local tempECMMenu = MENU_COALITION:New(coalition.side.BLUE, "Set ECM Use", tempGroupMenu)
+        local tempDeleteMenu = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Delete " .. thisGroup:GetName(), deleteSingleMenu, removeGroup, thisGroup, tempDeleteMenu)
+        local menuSet = {tempGroupMenu, tempROEMenu, tempROTMenu, tempECMMenu, tempDeleteMenu}
+        for i = 1, #gROETable do
+            menuSet[#menuSet + i] = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Set ROE " .. gROETable[i][1], menuSet[2], setROE, thisGroup, gROETable[i][2])
+        end
+        for j = 1, #gROTTable do
+            menuSet[#menuSet + j] = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Set ROT " .. gROTTable[j][1], menuSet[3], setROT, thisGroup, gROTTable[j][2])
+        end
+        for k = 1, #gECMTable do
+            menuSet[#menuSet + k] = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Set ECM Use " .. gECMTable[k][1], menuSet[4], setECMUse, thisGroup, gECMTable[k][2])
+        end
+        return menuSet
     end
 
     function buildMenu()
