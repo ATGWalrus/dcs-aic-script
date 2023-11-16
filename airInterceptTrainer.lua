@@ -24,12 +24,12 @@
 
     -- converts value passed in from nm to metres
     local function nmToMetres(nauticalMiles)
-        return nauticalMiles * 1852
+        return (nauticalMiles * 1852)
     end
 
     -- converts value passed in from feet to metres
     local function ftToMetres(feet)
-        return feet * 0.3048
+        return (feet * 0.3048)
     end
 
     -- returns a random altitude from the range passed as min and max arguments
@@ -81,7 +81,7 @@
 
     -- calculates the relative position of one object possessing a position from another i.e. the parameters bearingFromOrigin and separation represent the hypotenuse of the triangle /n
     -- having as its centre the object passed as origin. Returns new position as a POINT_VEC3
-    function calculateOffsetPos(bearingFromOrigin, origin, separation)
+    function calculateOffsetPos(bearingFromOrigin, origin, separation, altitude)
         MESSAGE:New("origin.z: " .. tostring(origin.z)):ToAll()
         local z = origin.z + (separation * math.sin(math.rad(bearingFromOrigin)))
         MESSAGE:New("output z: " .. tostring(z)):ToAll()
@@ -121,18 +121,19 @@
 
     --- presentation, aircraft and spawned groups tables
     --- each element contains: [1] presentation name [2] number of aircraft, [3] min separation, [4] max separation, [5] table of bearings from lead to trail groups
-    gPresentationTypeTable	= {{"Azimuth", 2, nmToMetres(7), nmToMetres(17), {270}},
-                                 {"Range", 2, nmToMetres(10), nmToMetres(20), {180}},
-                                 {"Vic", 3, nmToMetres(6), nmToMetres(12), {135, 225}},
-                                 {"Ladder", 3, nmToMetres(7), nmToMetres(12), {180, 360}},
-                                 {"Wall", 3, nmToMetres(7), nmToMetres(15), {90, 270}},
+    gPresentationTypeTable	= {{"Azimuth", 2, nmToMetres(5), nmToMetres(10), {270}},
+                                 {"Range", 2, nmToMetres(5), nmToMetres(10), {180}},
+                                 {"Vic", 3, nmToMetres(5), nmToMetres(10), {135, 225}},
+                                 {"Ladder", 3, nmToMetres(5), nmToMetres(10), {180, 360}},
+                                 {"Wall", 3, nmToMetres(5), nmToMetres(10), {90, 270}},
                                  {"Single Group", 1, 0, 0, {}},
-                                 {"Echelon", 2, nmToMetres(7), nmToMetres(17), {200}},
-                                 {"Champagne", 4, nmToMetres(7), nmToMetres(17), {45, 180, 315}},
+                                 {"Echelon", 2, nmToMetres(7), nmToMetres(10), {200}},
+                                 {"Champagne", 4, nmToMetres(7), nmToMetres(10), {45, 180, 315}},
                                  --[[{"2Stack"}, {"3Stack"}, {"Box"}--]]}
 
     -- elements are initialised by initSpawnZones(), into which data from table is passed and which replaces each element with a ZONE_UNIT iteratively
     gSpawnZoneTable = {{"Spawn Zone East", gRoosevelt, nmToMetres(5), 90, nmToMetres(225)},
+                       {"Spawn Zone SouthEast", gRoosevelt, nmToMetres(10), 135, nmToMetres(150)},
                        {"Spawn Zone South", gRoosevelt, nmToMetres(5), 180, nmToMetres(225)},
                        {"Spawn Zone South-Southwest", gRoosevelt, nmToMetres(5), 202.5, nmToMetres(225)},
                        {"Spawn Zone Southwest", gRoosevelt, nmToMetres(5), 225, nmToMetres(225)},
@@ -146,24 +147,20 @@
                           {"Flanker", "fighter", "red"}, {"Foxhound", "fighter", "red"}, {"Bear", "bomber", "red"},
                           {"Backfire", "fighter", "red"}}
     gSpawnHeadingTable = {360, 45, 90, 135, 180, 270, 315}
+    gAltTable = {"Low", "Medium", "High"}
     gROETable = {{"WEAPONS FREE", 0}, {"RETURN FIRE", 3}, {"WEAPON HOLD", 4}}
     gROTTable = {{"NO REACTION", 0}, {"PASSIVE DEFENCE", 1}, {"EVADE FIRE", 2}, {"BYPASS AND ESCAPE", 3}, {"ALLOW ABORT MISSION", 4}}
     gECMTable = {{"NEVER USE", 0}, {"USE ONLY IF LOCKED BY RADAR", 1}, {"USE ONLY IF RADAR SCAN DETECTED", 2}, {"ALWAYS ON", 3}}
     gSpawnedTable = {}  -- will be filled with instances of GROUP objects as they are instantiated by spawnGroup function
-    gSpawnMenuItems = {}
-    gTypeMenuItems = {}
-    gZoneMenuItems = {}
+    gSpawnMenuTable = {}
+    gTypeMenuTable = {}
+    gZoneMenuTable = {}
+    gAltMenuTable = {}
     gBearingMenuItems = {}
     gGroupMenuTable = {} -- will contain menu instances to control all alive groups
 
     --- further helper functions requiring access to global variables
-    -- Called from gSpawnZoneTable. Instantiates ZONE_UNIT object from arguments passed from elements of table
-    --[[function initSpawnZoneLocation(zoneName, zoneUnit, zoneRadius, zoneOffsetAngle, zoneOffsetRange)
-        local tempOffset = calculateOffsetPos(zoneOffsetAngle, getRooseveltLocation, zoneOffsetRange)
-
-        return ZONE_UNIT:New(zoneName, zoneUnit, zoneRadius, {tempOffset.x, tempOffset.z})
-    end]]--
-
+    -- generates spawn zones from parameters defined in each element of gSpawnZoneTable
     function initSpawnZones()
         for i = 1, #gSpawnZoneTable do
             local tempZone = ZONE_UNIT:New(gSpawnZoneTable[i][1], gSpawnZoneTable[i][2], gSpawnZoneTable[i][3],
@@ -183,18 +180,36 @@
         end
     end
 
-    -- calculates random location and returns it as a POINT_VEC3 from origin, min and max range and bearing from origin arguments
+
+    --- helper functions for spawning groups
+    --calculates random location and returns it as a POINT_VEC3 from origin, min and max range and bearing from origin arguments
     local function getRandomLocation(centre, min, max, bearing)
         local x = centre.x + randomDeltaX(bearing, min, max)
-        local y = randomAltitude()
+        local y = nil
         local z = centre.y + randomDeltaZ(bearing, min, max)
         local locationObj = POINT_VEC3:New(x, y, z)
         return locationObj
     end
 
-    local function selectLocationInZone(zone)
+    local function setAltitude(altString)
+        if altString == "Low" then
+            --MESSAGE:New("Low Altitude"):ToAll()
+            return randomAltitude(ftToMetres(5000), ftToMetres(10000))
+        elseif altString == "Medium" then
+            --MESSAGE:New("Medium Altitude"):ToAll()
+            return randomAltitude(ftToMetres(15000), ftToMetres(25000))
+        elseif altString == "High" then
+            --MESSAGE:New("High Altitude")
+            return randomAltitude(ftToMetres(25000), ftToMetres(35000))
+        else
+            --MESSAGE:New("randomAltitude"):ToAll()
+            return randomAltitude()
+        end
+    end
+
+    local function selectLocationInZone(zone, altitude)
         local spawnLocation = zone:GetRandomPointVec3()
-        spawnLocation.y = (10000)
+        spawnLocation:SetY(altitude)
         return spawnLocation
     end
 
@@ -215,25 +230,6 @@
         return (baseHeading + math.random(-10, 10))
     end
 
-    -- unused test function
-    local function checkAlive(group)
-        if group:IsAlive() == true then
-            return true
-        else
-            return false
-        end
-    end
-
-    -- unused test function
-    function spawnSingleGroupAtRandomLocation()
-        BASE:E("spawnRandom")
-        MESSAGE:New("spawnRandom", 40):ToAll()
-        local spawnPoint = getRandomLocation()
-        spawnGroup(spawnPoint, 250, "F-15")
-    end
-
-    --- functions to calculate spawn parameters for new groups
-
     -- helper function for spawnPresentation() - checks if a location has been passed and randomly generates one if not
     local function checkLocation(location)
         if location == nil then
@@ -252,9 +248,26 @@
         end
     end
 
-    --- functions for deleting groups
+    -- unused test function
+    function spawnSingleGroupAtRandomLocation()
+        BASE:E("spawnRandom")
+        MESSAGE:New("spawnRandom", 40):ToAll()
+        local spawnPoint = getRandomLocation()
+        spawnGroup(spawnPoint, 250, "F-15")
+    end
+
+    -- unused test function
+    local function checkAlive(group)
+        if group:IsAlive() == true then
+            return true
+        else
+            return false
+        end
+    end
+
+    --- menu helper functions
     function deleteGroupMenu(index)
-        MESSAGE:New("inside deleteGroupMenu"):ToAll()
+        --MESSAGE:New("inside deleteGroupMenu"):ToAll()
         for i = 1, #gGroupMenuTable do
             if index == gGroupMenuTable[i][1] then
                 for j = #gGroupMenuTable[i], 2, -1 do
@@ -264,7 +277,7 @@
                 end
             end
         end
-        MESSAGE:New("deleteGroupMenu end of block"):ToAll()
+        --MESSAGE:New("deleteGroupMenu end of block"):ToAll()
     end
 
     -- iteratively deletes all spawned groups and associated menus
@@ -291,21 +304,7 @@
             deleteGroupMenu(index)
         end
         collectgarbage()
-        --groupOptionsMenu:Refresh()
-        --deleteSingleMenu:Refresh()
     end
-
-
-
-    -- deletes group passed in and removes menu for that group
-    --[[function removeGroup(thisGroup, menuTable)
-        thisGroup[1]:Destroy(false, 1)
-        removeMenu(menuTable)
-        thisGroup[2] = nil
-        groupOptionsMenu:Refresh()
-        deleteSingleMenu:Refresh()
-        groupOptionsMenu:Refresh()
-    end--]]
 
     function removeMenu(menuTable)
         for i = 1, #menuTable - 1 do
@@ -334,6 +333,7 @@
         end
     end
 
+    --- functions called to instantiate new groups
     -- helper function using calculateOffsetPos() to set a waypoint for group argument on the passed bearing
     function setWaypoint(group, bearing, origin, range, speed)
         BASE:E("setWaypoint")
@@ -342,9 +342,13 @@
         BASE:E("waypoint set")
     end
 
-    function spawnGroup(location, heading, type)
+    -- spawns group with characteristics set by arguments; string passed as altitude used to determine random height within three bands
+    function spawnGroup(location, heading, type, altitude)
         local newGroup = SPAWN:NewWithAlias(type, "AIC Group " .. type .. " " .. tostring(gSpawnedCounter))
-        newGroup:InitGroupHeading(heading)         -- if table is not empty, reference will be created at element corresponding to current value of gSpawnedCounter
+        location:SetY(setAltitude(altitude))
+        --MESSAGE:New(tostring(location:GetY())):ToAll()
+        newGroup:InitHeading(heading)
+        newGroup:InitGroupHeading(heading)
         BASE:E("table not empty")
         gSpawnedTable[gSpawnedCounter] = {newGroup:SpawnFromPointVec3(location), gSpawnedCounter}
         gGroupMenuTable[gSpawnedCounter] = buildGroupMenu(gSpawnedTable[gSpawnedCounter][1])
@@ -354,21 +358,21 @@
     end
 
     -- spawns first group in a presentation (via spawnGroup()) and iteratively spawns remaining groups in presentation
-    function spawnPresentation(type, selectedPresentation, origin, groupHeadingArg)
+    function spawnPresentation(type, selectedPresentation, origin, groupHeadingArg, altitude)
         BASE:E("spawnPresentation")
         local leadPosition = checkLocation(origin)
         local groupHeading = checkHeading(groupHeadingArg)
         local separation = randomRange(selectedPresentation[3], selectedPresentation[4])
-        spawnGroup(leadPosition, groupHeading, type)
+        spawnGroup(leadPosition, groupHeading, type, altitude)
         for i = 1, #selectedPresentation[5] do
             local angleOff = selectedPresentation[5][i] + groupHeading
-            spawnGroup(calculateOffsetPos(angleOff, leadPosition, separation), groupHeading, type)
+            spawnGroup(calculateOffsetPos(angleOff, leadPosition, separation), groupHeading, type, altitude)
         end
         MESSAGE:New(selectedPresentation[2] .. "-group " .. selectedPresentation[1] .. " presentation spawned"):ToAll()
     end
 
-    function spawnHelper(type, presentation, zone, heading)
-        spawnPresentation(selectType(type), presentation, selectLocationInZone(zone), setHeading(heading))
+    function spawnHelper(type, presentation, zone, altitude, heading)
+        spawnPresentation(selectType(type), presentation, selectLocationInZone(zone), setHeading(heading), altitude)
     end
 
     --- Build F10 Menu
@@ -378,20 +382,25 @@
         local menuItemPresentation
         local menuItemType
         local menuItemZone
+        local menuItemAltitude
         local menuItemHeading
         for i = 1, #gPresentationTypeTable do
             menuItemPresentation = MENU_COALITION:New(coalition.side.BLUE, "Spawn " .. tostring(gPresentationTypeTable[i][2]) .. "-Group " .. gPresentationTypeTable[i][1], spawnMenu)
-            gSpawnMenuItems[i] = menuItemPresentation
+            gSpawnMenuTable[i] = menuItemPresentation
             for j = 1, #gAircraftTypeTable do
                 menuItemType = MENU_COALITION:New(coalition.side.BLUE, gAircraftTypeTable[j][1], menuItemPresentation)
-                gTypeMenuItems[j] = menuItemType
+                gTypeMenuTable[j] = menuItemType
                 for k = 1, #gSpawnZoneTable do
                     menuItemZone = MENU_COALITION:New(coalition.side.BLUE, "Spawn in " .. gSpawnZoneTable[k]:GetName(), menuItemType)
-                    gZoneMenuItems[k] = menuItemZone
-                    for l = 1, #gSpawnHeadingTable do
-                        menuItemHeading = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Set Spawn Heading " .. tostring(gSpawnHeadingTable[l]), menuItemZone,
-                                spawnHelper, gAircraftTypeTable[j][1], gPresentationTypeTable[i],  gSpawnZoneTable[k], gSpawnHeadingTable[l])
-                        gBearingMenuItems[l] = menuItemHeading
+                    gZoneMenuTable[k] = menuItemZone
+                    for l = 1, #gAltTable do
+                        menuItemAltitude = MENU_COALITION:New(coalition.side.BLUE, "Spawn at " .. gAltTable[l] .. " altitude", menuItemZone)
+                        gAltMenuTable[l] = menuItemAltitude
+                        for m = 1, #gSpawnHeadingTable do
+                            menuItemHeading = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Set Spawn Heading " .. tostring(gSpawnHeadingTable[m]), menuItemAltitude,
+                                    spawnHelper, gAircraftTypeTable[j][1], gPresentationTypeTable[i],  gSpawnZoneTable[k], gAltTable[l], gSpawnHeadingTable[m])
+                            gBearingMenuItems[m] = menuItemHeading
+                        end
                     end
                 end
             end
