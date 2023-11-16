@@ -442,7 +442,10 @@
         return menuSet
     end
 
-    function buildInterceptTargetMenu()
+    function interceptBear()
+        -- build client menus
+        -- centre spawn on client
+        -- allow specification of TA and altitude
 
     end
 
