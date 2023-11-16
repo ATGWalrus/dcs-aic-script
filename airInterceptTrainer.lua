@@ -2,11 +2,14 @@
 ---
 --- Script to spawn and manage groups configured in specific formations and multi-group presentations
 --- As currently implemented, spawn zones are calculated as offsets from the Roosevelt
---- The characteristics of a given presentation are stored in an array of format: {presentationName, num aircraft, minimum range between spawned groups, max range, {bearings from first group}}
+--- The characteristics of a given presentation are stored in an array of format:
+---                 {presentationName, num aircraft, minimum range between spawned groups, max range, {bearings from first group}}
 --- Presentations will be spawned in a selected zone and on a heading within +-10 degrees of that specified
---- Each group spawned, as well as each menu item generated are stored in tables
+--- Each group spawned, as well as each menu item generated are stored in tables. Elements of tables are 2D, containing a reference to an object and an index
+--- Possibly this data structure is less elegant than that built into MOOSE, but I have so far been unable to implement all functions required of this script using only the tables \n
+--- belonging to MOOSE classes
 --- Inspiration for this script drawn from AIC classes formerly run by DCS Academy
---- Charles T. Wild (Walrus) 2023
+--- C. Wild (Walrus) 2023
 ---
 
     -- Vec3 function coalition.getMainRefPoint(enum coalition.side coalition) function call returning bullseye as a Vec3
