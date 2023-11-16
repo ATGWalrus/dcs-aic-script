@@ -6,14 +6,14 @@
     --- gTrafficDataTable[1] = template name, [2] = departure list, [3] = destination list, [4] = commute [5] = starshape [6] = SpawnDelay, [7] = RespawnDelay, [8] = SpawnInterval
     gComAirDataTable = {{"COM NWA747", {"Antonio B. Won Pat Intl", "Saipan Intl"}, {"COMAIR Northeast", "COMAIR East"}, true, true, 300, 1800, 1200},
                          {"COM AFR727", {"Antonio B. Won Pat Intl"}, {"COMAIR Northeast", "COMAIR East"}, true, true, 150, 900, 600},
-                        {"COM PHL737", {"Antonio B. Won Pat Intl", "Saipan Intil"}, {"COMAIR Southwest"}, true, true, 15, 600, 600},
+                        {"COM PHL737", {"Antonio B. Won Pat Intl", "Saipan Intl"}, {"COMAIR Southwest"}, true, true, 15, 600, 600},
                         {"COM AIN747", {"Antonio B. Won Pat Intl"}, {"COMAIR Northwest"}, true, true, 60, 500, 1800},
                         {"COM INDD9", {"Antonio B. Won Pat Intl", "Saipan Intl"}, {"COMAIR West"}, true, true, 30, 60, 15},
                         {"COM DHL757", {"Antonio B. Won Pat Intl", "Saipan Intl"}, {"COMAIR West", "COMAIR Southwest"}, true, true, 60, 300, 300},
                         {"COM DHLD10", {"Antonio B. Won Pat Intl"}, {"COMAIR Northeast"}, true, true, 300, 60, 120},
                         {"COM QFA747", {"Antonio B. Won Pat Intl"}, {"COMAIR Southeast"}, true, true, 0, 60, 600},
                         {"COM TNT737", {"Antonio B. Won Pat Intl", "Saipan Intl"}, {"COMAIR West", "COMAIR Southwest"}, true, true, 15, 60, 120},
-                        {"COM SIN727", {"Antonio B. Won Pat Intl"}, {"COMAIR North, COMAIR Northwest", "COMAIR West"}, true, true, 60, 120, 300},
+                        {"COM SIN727", {"Antonio B. Won Pat Intl"}, {"COMAIR North", "COMAIR Northwest", "COMAIR West"}, true, true, 60, 120, 300},
                         {"COM AFR747", {"Antonio B. Won Pat Intl"}, {"COMAIR Northwest"}, true, true, 120, 60, 400},
                         {"COM AAL757", {"Antonio B. Won Pat Intl"}, {"COMAIR Northeast"}, true, true, 90, 120, 60},
                         {"COM FDXD10", {"Antonio B. Won Pat Intl"}, {"COMAIR North", "COMAIR Northwest", "COMAIR East"}, true, true, 120, 90, 300},
@@ -86,7 +86,8 @@
 
     function main()
         comAirTrafficTable = buildRatTable(gComAirDataTable)
-        newRatManager(comAirTrafficTable, 25)
+        comAirRatManager = newRatManager(comAirTrafficTable, 25)
+        comAirRatManager:Start()
         return 0
     end
 
