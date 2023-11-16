@@ -1,7 +1,8 @@
 
 --- 16/11/2023
---- Route definitions
----
+--- Implemented for maximum portability and reusability
+                ---functions are entirely independent of any DCS map or asset and will work with any data supplied in the specified format
+
 --- table containing the arguments to initialise one RAT in each element
 --- gTrafficDataTable[1] = template name, [2] = departure list, [3] = destination list, [4] = commute [5] = starshape [6] = SpawnDelay, [7] = RespawnDelay, [8] = SpawnInterval
 --- probably should be moved to an external file to clean up script
@@ -27,11 +28,6 @@
                         {"COM PHL727", {"Antonio B. Won Pat Intl", "Saipan Intl"}, {"COMAIR East", "COMAIR Southeast"}, true, true, 15, 60, 120},
                         {"COM CHR727", {"Antonio B. Won Pat Intl"}, {"COMAIR North", "COMAIR East"}, true, true, 60, 15, 150},
                         {"COM KLM747", {"Antonio B. Won Pat Intl"}, {"COMAIR Northwest", "COMAIR Northeast"}, true, true, 30, 150, 300}}
-    gGaTable = {}
-    gMilTable = {}
-    gNavyTable = {}
-    --- holds instances of RAT
-    gRatTable = {}
 
     --- RAT initialisation helper functions
     -- initialise RAT instance departures
@@ -58,6 +54,7 @@
     end
 
     -- returns table containing instances of RAT initialised with helper functions using table of data passed in
+    -- RAT instances are instantiated and initialised iteratively
     local function buildRatTable(ratData)
         local tempRat
         local tempRatTable = {}
