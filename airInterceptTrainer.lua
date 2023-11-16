@@ -154,7 +154,7 @@
     gTypeMenuItems = {}
     gZoneMenuItems = {}
     gBearingMenuItems = {}
-    gMenuForGroupItems = {} -- will contain menu instances to control all alive groups
+    gGroupMenuTable = {} -- will contain menu instances to control all alive groups
 
     --- further helper functions requiring access to global variables
     -- Called from gSpawnZoneTable. Instantiates ZONE_UNIT object from arguments passed from elements of table
@@ -253,29 +253,71 @@
     end
 
     --- functions for deleting groups
+    function deleteGroupMenu(index)
+        MESSAGE:New("inside deleteGroupMenu"):ToAll()
+        for i = 1, #gGroupMenuTable do
+            MESSAGE:New("#gMenuForGroupTable = " .. tostring(#gGroupMenuTable)):ToAll()
+            MESSAGE:New("inside deleteGroupMenu outer loop"):ToAll()
+            MESSAGE:New("Menu Index = " .. tostring(gGroupMenuTable[i][1])):ToAll()
+            if index == gGroupMenuTable[i][1] then
+                MESSAGE:New("inside deleteGroupMenu conditional"):ToAll()
+                MESSAGE:New("index: " .. tostring(#gGroupMenuTable)):ToAll()
+                MESSAGE:New("#gGroupMenuTable[i] = " .. tostring(#gGroupMenuTable[i])):ToAll()
+                for j = #gGroupMenuTable[i], 2, -1 do
+                    MESSAGE:New("inside deleteGroupMenu inner loop"):ToAll()
+                    if gGroupMenuTable[i][j] ~= nil then
+                        MESSAGE:New(tostring(j)):ToAll()
+                        gGroupMenuTable[i][j]:Remove()
+                    end
+                end
+            end
+        end
+        MESSAGE:New("deleteGroupMenu end of block"):ToAll()
+    end
+
     -- iteratively deletes all spawned groups and associated menus
     function removeAll()
         for i = 1, #gSpawnedTable do
             local tempIndex = gSpawnedTable[i][2]
-            if gSpawnedTable[i] ~= nil then
-                removeGroup(gSpawnedTable[i])
+            if gSpawnedTable[i][1] ~= nil then
+                gSpawnedTable[i][1]:Destroy(false, 1)
+                --deleteGroupMenu(i)
+                groupOptionsMenu:Refresh()
             end
-            if gMenuForGroupItems[i] ~= nil then
-                removeMenu(gMenuForGroupItems[i])
+            if gGroupMenuTable[i][1] ~= nil then
+                MESSAGE:New("gMenuForGroupItems not nil"):ToAll()
+                deleteGroupMenu(i)
             end
             --gSpawnedCounter = gSpawnedCounter - 1
         end
     end
 
+    function deleteSingleGroup(index)
+        for i = 1, #gSpawnedTable do
+            if gSpawnedTable[i][2] == index then
+                MESSAGE:New("group index: " .. tostring(gSpawnedTable[i][2])):ToAll()
+                gSpawnedTable[i][1]:Destroy(false, 1)
+            end
+        end
+        if gGroupMenuTable[index][1] ~= nil then
+            deleteGroupMenu(index)
+        end
+        collectgarbage()
+        --groupOptionsMenu:Refresh()
+        --deleteSingleMenu:Refresh()
+    end
+
+
+
     -- deletes group passed in and removes menu for that group
-    function removeGroup(thisGroup, menuTable)
+    --[[function removeGroup(thisGroup, menuTable)
         thisGroup[1]:Destroy(false, 1)
         removeMenu(menuTable)
         thisGroup[2] = nil
         groupOptionsMenu:Refresh()
         deleteSingleMenu:Refresh()
         groupOptionsMenu:Refresh()
-    end
+    end--]]
 
     function removeMenu(menuTable)
         for i = 1, #menuTable - 1 do
@@ -317,7 +359,7 @@
         newGroup:InitGroupHeading(heading)         -- if table is not empty, reference will be created at element corresponding to current value of gSpawnedCounter
         BASE:E("table not empty")
         gSpawnedTable[gSpawnedCounter] = {newGroup:SpawnFromPointVec3(location), gSpawnedCounter}
-        gMenuForGroupItems[gSpawnedCounter] = buildGroupMenu(gSpawnedTable[gSpawnedCounter][1])
+        gGroupMenuTable[gSpawnedCounter] = buildGroupMenu(gSpawnedTable[gSpawnedCounter][1])
         setWaypoint(gSpawnedTable[gSpawnedCounter][1], heading, location)
         gSpawnedCounter = gSpawnedCounter + 1
         --BASE:E(gSpawnedTable[gSpawnedCounter]:GetPositionVec3())
@@ -375,28 +417,27 @@
     -- add menu items to delete group, change ROE, ROT and ECM use
     function buildGroupMenu(thisGroup)
         local index = gSpawnedCounter
+        MESSAGE:New(tostring(index)):ToAll()
         local tempGroupMenu = MENU_COALITION:New(coalition.side.BLUE, "Manage " .. thisGroup:GetName(), groupOptionsMenu)
         local tempROEMenu = MENU_COALITION:New(coalition.side.BLUE, "Set ROE", tempGroupMenu)
         local tempROTMenu = MENU_COALITION:New(coalition.side.BLUE, "Set ROT", tempGroupMenu)
         local tempECMMenu = MENU_COALITION:New(coalition.side.BLUE, "Set ECM Use", tempGroupMenu)
-        local menuSet = {tempGroupMenu, tempROEMenu, tempROTMenu, tempECMMenu, tempDeleteMenu}
+        local tempDeleteMenu = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Delete " .. thisGroup:GetName(), deleteSingleMenu, deleteSingleGroup, index)
+        local menuSet = {index, tempGroupMenu, tempROEMenu, tempROTMenu, tempECMMenu, tempDeleteMenu}
         for i = 1, #gROETable do
-            menuSet[#menuSet + i] = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Set ROE " .. gROETable[i][1], menuSet[2], setROE, thisGroup, gROETable[i][2])
+            menuSet[#menuSet + i] = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Set ROE " .. gROETable[i][1], menuSet[3], setROE, thisGroup, gROETable[i][2])
+            MESSAGE:New("i = " .. tostring(i)):ToAll()
         end
         for j = 1, #gROTTable do
-            menuSet[#menuSet + j] = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Set ROT " .. gROTTable[j][1], menuSet[3], setROT, thisGroup, gROTTable[j][2])
+            menuSet[#menuSet + j] = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Set ROT " .. gROTTable[j][1], menuSet[4], setROT, thisGroup, gROTTable[j][2])
+            MESSAGE:New("j = " .. tostring(j)):ToAll()
         end
         for k = 1, #gECMTable do
-            menuSet[#menuSet + k] = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Set ECM Use " .. gECMTable[k][1], menuSet[4], setECMUse, thisGroup, gECMTable[k][2])
+            menuSet[#menuSet + k] = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Set ECM Use " .. gECMTable[k][1], menuSet[5], setECMUse, thisGroup, gECMTable[k][2])
+            MESSAGE:New("k = " .. tostring(k)):ToAll()
         end
-        local tempDeleteMenu = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Delete " .. thisGroup:GetName(), deleteSingleMenu, removeGroup, thisGroup, menuSet)
-        table.insert(menuSet, tempDeleteMenu)
-        table.insert(menuSet, index)
+        MESSAGE:New("#menuSet = " .. tostring(#menuSet)):ToAll()
         return menuSet
-    end
-
-    function buildMenu()
-
     end
 
     function buildInterceptTargetMenu()
