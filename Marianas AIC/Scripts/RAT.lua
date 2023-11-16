@@ -3,7 +3,8 @@
 --- Route definitions
 ---
 --- table containing the arguments to initialise one RAT in each element
-    --- gTrafficDataTable[1] = template name, [2] = departure list, [3] = destination list, [4] = commute [5] = starshape [6] = SpawnDelay, [7] = RespawnDelay, [8] = SpawnInterval
+--- gTrafficDataTable[1] = template name, [2] = departure list, [3] = destination list, [4] = commute [5] = starshape [6] = SpawnDelay, [7] = RespawnDelay, [8] = SpawnInterval
+--- probably should be moved to an external file to clean up script
     gComAirDataTable = {{"COM NWA747", {"Antonio B. Won Pat Intl", "Saipan Intl"}, {"COMAIR Northeast", "COMAIR East"}, true, true, 300, 1800, 1200},
                          {"COM AFR727", {"Antonio B. Won Pat Intl"}, {"COMAIR Northeast", "COMAIR East"}, true, true, 150, 900, 600},
                         {"COM PHL737", {"Antonio B. Won Pat Intl", "Saipan Intl"}, {"COMAIR Southwest"}, true, true, 15, 600, 600},
