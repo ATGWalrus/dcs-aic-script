@@ -87,6 +87,7 @@
     function main()
         comAirTrafficTable = buildRatTable(gComAirDataTable)
         newRatManager(comAirTrafficTable, 25)
+        return 0
     end
 
     main()

@@ -191,6 +191,8 @@
         return locationObj
     end
 
+    -- conditional statements used to determine altitude band to return
+    -- if no argument is passed, returns random altitude
     local function setAltitude(altString)
         if altString == "Low" then
             --MESSAGE:New("Low Altitude"):ToAll()
@@ -207,12 +209,16 @@
         end
     end
 
+    -- takes a ZONE and altitude argument
+    -- returns POINT_VEC3 randomly from within ZONE and sets altitude (POINT_VEC3.Y)
     local function selectLocationInZone(zone, altitude)
         local spawnLocation = zone:GetRandomPointVec3()
         spawnLocation:SetY(altitude)
         return spawnLocation
     end
 
+    -- if no argument passed, returns a random aircraft type
+    -- iteratively compares argument with elements of table holding aircraft types and returns match
     local function selectType(type)
         BASE:E("selectType")
         if type == nil then
@@ -226,6 +232,7 @@
         end
     end
 
+    -- returns a heading +-10 degrees of passed value
     local function setHeading(baseHeading)
         return (baseHeading + math.random(-10, 10))
     end
