@@ -304,6 +304,9 @@
         end
     end
 
+    -- index for each group object and for the table holding its particular menus is iteratively searched for a match
+    -- index is passed in by menu option generated when group was instantiated
+    -- calls GROUP type's Destroy function to delete instance if found
     function deleteSingleGroup(index)
         for i = 1, #gSpawnedTable do
             if gSpawnedTable[i][2] == index then
@@ -315,14 +318,10 @@
         end
         collectgarbage()
     end
-
-    function removeMenu(menuTable)
-        for i = 1, #menuTable - 1 do
-            menuTable[i]:Remove()
-        end
-        menuTable[#menuTable] = nil
-    end
-
+    --- helper functions for changing ROE, RoT and ECM use
+    -- all called from procedurally-generated group menu
+    -- arguments are initialised by menu constructor and passed when function is called
+    -- value passed in is the enum for the selected option
     function setROE(thisGroup, ROEVal)
         thisGroup:OptionROE(ROEVal)
     end
@@ -352,7 +351,8 @@
         BASE:E("waypoint set")
     end
 
-    -- spawns group with characteristics set by arguments; string passed as altitude used to determine random height within three bands
+    -- spawns group with characteristics set by arguments gathered from multi-layered menu
+    -- altitude is passed as a string, passed to setAltitude function which determines a random value within bands defined in gAltTable
     function spawnGroup(location, heading, type, altitude)
         local newGroup = SPAWN:NewWithAlias(type, "AIC Group " .. type .. " " .. tostring(gSpawnedCounter))
         location:SetY(setAltitude(altitude))
@@ -440,6 +440,10 @@
             menuSet[#menuSet + k] = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Set ECM Use " .. gECMTable[k][1], menuSet[5], setECMUse, thisGroup, gECMTable[k][2])
         end
         return menuSet
+    end
+
+    local function bearMenu(client)
+
     end
 
     function interceptBear()
