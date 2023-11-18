@@ -148,9 +148,9 @@
 
     gAircraftTypeTable = {--[[{"F-4", "fighter", "blue"}, {"F-5", "fighter", "blue"}, {"F-14", "fighter", "blue"},
                           {"F-15", "fighter", "blue"}, {"F-16", "fighter", "blue"}, {"F-18", "fighter", "blue"},--]]
-                          {"Bear", "bomber", "red"}, {"Backfire", "fighter", "red"},
+                          {"Bear", "bomber", "red"}, {"Backfire", "bomber", "red"},
                           {"Farmer", "fighter", "red"}, {"Fishbed", "fighter", "red"},
-                          {"Flogger", "fighter", "red"}--[[, {"Foxbat", "fighter", "red"}--]], {"Fulcrum", "fighter", "red"},
+                          {"Flogger", "fighter", "red"}, {"Foxbat", "fighter", "red"}, {"Fulcrum", "fighter", "red"},
                           {"Flanker", "fighter", "red"}, {"Foxhound", "fighter", "red"}}
 
     gSpawnHeadingTable = {360, 45, 90, 135, 180, 270, 315}

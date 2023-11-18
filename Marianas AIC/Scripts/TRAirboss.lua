@@ -13,18 +13,18 @@
 	tanker:SetTakeoffAir()
 	tanker:SetRadio(344.025)
 	tanker:SetModex(511)
-	tanker:SetTACAN(1, "TKR")
+	tanker:SetTACAN(33, "TKR")
 	tanker:__Start(1)
 
 	-- E-2D AWACS spawning on Roosevelt.
 	local awacs=RECOVERYTANKER:New("USS Theodore Roosevelt", "E-2D Wizard Group")
-	awacs:SetAWACS(true, false)
+	awacs:SetAWACS()
 	awacs:SetRadio(317.775)
 	awacs:SetAltitude(20000)
 	awacs:SetCallsign(CALLSIGN.AWACS.Wizard)
 	awacs:SetRacetrackDistances(30, 15)
 	awacs:SetModex(700)
-	awacs:SetTACAN(2, "WIZ")
+	awacs:SetTACAN(65, "WIZ")
 	awacs:__Start(1)
 
 
@@ -70,7 +70,8 @@
 	function awacs:OnAfterStart(From,Event,To)
 		-- Set AWACS.
 		AirbossRoosevelt:SetRecoveryTanker(tanker)
-		--GROUP:FindByName(awacs:GetUnitName()):CommandEPLRS(false, 5)
+		--UNIT:FindByName(awacs:GetUnitName()):CommandEPLRS(false, 5)
+		--awacs.eplrs = false
 	end
 
 	--- Function called when rescue helo is started.
