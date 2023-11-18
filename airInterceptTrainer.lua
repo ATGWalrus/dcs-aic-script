@@ -134,6 +134,9 @@
                                  {"Champagne", 4, nmToMetres(7), nmToMetres(10), {45, 180, 315}},
                                  --[[{"2Stack"}, {"3Stack"}, {"Box"}--]]}
 
+    gVF111Table = {"VF-111 200", "VF-111 201", "VF-111 202", "VF-111 203", "VF-111 204", "VF-111 205", "VF-111 206", "VF-111 207",
+                    "VF-111 210", "VF-111 211", "VF-111 212", "VF-111 213", "VF-111 214", "VF-111 215", "VF-111 216"}
+
     -- elements are initialised by initSpawnZones(), into which data from table is passed and which replaces each element with a ZONE_UNIT iteratively
     gSpawnZoneTable = {{"Spawn Zone East", gRoosevelt, nmToMetres(5), 90, nmToMetres(225)},
                        {"Spawn Zone SouthEast", gRoosevelt, nmToMetres(10), 135, nmToMetres(150)},
@@ -145,10 +148,11 @@
 
     gAircraftTypeTable = {--[[{"F-4", "fighter", "blue"}, {"F-5", "fighter", "blue"}, {"F-14", "fighter", "blue"},
                           {"F-15", "fighter", "blue"}, {"F-16", "fighter", "blue"}, {"F-18", "fighter", "blue"},--]]
-                          {"Fagot", "fighter", "red"}, {"Farmer", "fighter", "red"}, {"Fishbed", "fighter", "red"},
-                          {"Flogger", "fighter", "red"}, {"Foxbat", "fighter", "red"}, {"Fulcrum", "fighter", "red"},
-                          {"Flanker", "fighter", "red"}, {"Foxhound", "fighter", "red"}, {"Bear", "bomber", "red"},
-                          {"Backfire", "fighter", "red"}}
+                          {"Bear", "bomber", "red"}, {"Backfire", "fighter", "red"},
+                          {"Farmer", "fighter", "red"}, {"Fishbed", "fighter", "red"},
+                          {"Flogger", "fighter", "red"}--[[, {"Foxbat", "fighter", "red"}--]], {"Fulcrum", "fighter", "red"},
+                          {"Flanker", "fighter", "red"}, {"Foxhound", "fighter", "red"}}
+
     gSpawnHeadingTable = {360, 45, 90, 135, 180, 270, 315}
     gAltTable = {"Low", "Medium", "High"}
     gROETable = {{"WEAPONS FREE", 0}, {"RETURN FIRE", 3}, {"WEAPON HOLD", 4}}
@@ -183,12 +187,11 @@
         end
     end
 
-
     --- helper functions for spawning groups
     --calculates random location and returns it as a POINT_VEC3 from origin, min and max range and bearing from origin arguments
     local function getRandomLocation(centre, min, max, bearing)
         local x = centre.x + randomDeltaX(bearing, min, max)
-        local y = nil
+        local y = randomAltitude()
         local z = centre.y + randomDeltaZ(bearing, min, max)
         local locationObj = POINT_VEC3:New(x, y, z)
         return locationObj
