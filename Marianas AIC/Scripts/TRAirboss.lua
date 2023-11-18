@@ -23,9 +23,10 @@
 	awacs:SetAltitude(20000)
 	awacs:SetCallsign(CALLSIGN.AWACS.Wizard)
 	awacs:SetRacetrackDistances(30, 15)
-	awacs:SetModex(611)
+	awacs:SetModex(700)
 	awacs:SetTACAN(2, "WIZ")
 	awacs:__Start(1)
+
 
 	-- Rescue Helo with home base on Roosevelt
 	rescuehelo=RESCUEHELO:New("USS Theodore Roosevelt", "Rescue Helo")
@@ -69,6 +70,7 @@
 	function awacs:OnAfterStart(From,Event,To)
 		-- Set AWACS.
 		AirbossRoosevelt:SetRecoveryTanker(tanker)
+		GROUP:FindByName(awacs:GetUnitName()):CommandEPLRS(false, 5)
 	end
 
 	--- Function called when rescue helo is started.
