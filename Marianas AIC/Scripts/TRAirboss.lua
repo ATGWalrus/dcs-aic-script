@@ -108,10 +108,17 @@
 		return lUnit:CommandEPLRS(eplrsSwitch)
 	end
 
-	-- avoids use of airboss to initialise AWACS and enable manual settng of EPLRS
-	function newAwacs()
-
+	local function newSpawnGroup(lGroupTemplate)
+		local newSpawn = SPAWN:New(lGroupTemplate)
+		return awacsGroup
 	end
+
+	-- avoids use of airboss to initialise AWACS and enable manual settng of EPLRS
+	local function spawnNewGroup(spawnInst)
+		return spawnInst:SPAWN()
+	end
+
+
 
 	-- Menu for on-demand recovery windows
 	recoveryWindowMenu = MENU_COALITION:New(coalition.side.BLUE, "Recovery Window")	-- top level menu (under F10)
@@ -123,8 +130,6 @@
 	ninetyMinuteWindow = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Initiate 90 Minute Recovery Window", recoveryWindowMenu, beginRecoveryHelper, 5400)
 
 	function main()
-		eplrsOnOff(UNIT:FindByName("USS Theodore Roosevelt_E-2D_Wizard Group_02#001"), false)
-		eplrsOnOff((GROUP:FindByName("")))
 		return 0
 	end
 
