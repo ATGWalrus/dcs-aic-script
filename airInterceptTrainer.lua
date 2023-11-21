@@ -384,7 +384,7 @@
         MESSAGE:New(selectedPresentation[2] .. "-group " .. selectedPresentation[1] .. " presentation spawned"):ToAll()
     end
 
-    function spawnHelper(type, presentation, zone, altitude, heading)
+    function spawnAICPresHelper(type, presentation, zone, altitude, heading)
         spawnPresentation(selectType(type), presentation, selectLocationInZone(zone), setHeading(heading), altitude)
     end
 
@@ -411,7 +411,7 @@
                         gAltMenuTable[l] = menuItemAltitude
                         for m = 1, #gSpawnHeadingTable do
                             menuItemHeading = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Set Spawn Heading " .. tostring(gSpawnHeadingTable[m]), menuItemAltitude,
-                                    spawnHelper, gAircraftTypeTable[j][1], gPresentationTypeTable[i],  gSpawnZoneTable[k], gAltTable[l], gSpawnHeadingTable[m])
+                                    spawnAICPresHelper, gAircraftTypeTable[j][1], gPresentationTypeTable[i],  gSpawnZoneTable[k], gAltTable[l], gSpawnHeadingTable[m])
                             gBearingMenuItems[m] = menuItemHeading
                         end
                     end
@@ -449,11 +449,15 @@
 
     end
 
+    -- bomber intercept bomber intercept trainer
+
+
+
     function interceptBear()
         -- build client menus
         -- centre spawn on client
         -- allow specification of TA and altitude
-
+        --
     end
 
     function main()
