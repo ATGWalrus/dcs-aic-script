@@ -10,7 +10,7 @@
 
 	-- S-3B Recovery Tanker spawning in air.
 	local tanker=RECOVERYTANKER:New("USS Theodore Roosevelt", "Texaco Group")
-	tanker:SetTakeoffAir()
+	--tanker:SetTakeoffAir()
 	tanker:SetRadio(344.025)
 	tanker:SetModex(511)
 	tanker:SetTACAN(33, "TKR")

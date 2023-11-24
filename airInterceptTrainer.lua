@@ -82,6 +82,14 @@
         end
     end
 
+    local function randomGroupStrength(min, max)
+        return math.random(min, max)
+    end
+
+    local function bearingTo(coordFrom, coordTo)
+        return coordFrom:GetAngleRadians(coordTo:GetVec3())
+    end
+
     -- calculates the relative position of one object possessing a position from another i.e. the parameters bearingFromOrigin and separation represent the hypotenuse of the triangle /n
     -- having as its centre the object passed as origin. Returns new position as a POINT_VEC3
     function calculateOffsetPos(bearingFromOrigin, origin, separation, altitude)
@@ -112,6 +120,7 @@
     BASE:E("above gCentre")
     gCentre = POINT_VEC2:New(36199, 268314) -- centre from which spawn locations will be derived. Defined arbitrarily and does not couple script to a particular map. Current value corresponds roughly to centre of the Syria map
     gRoosevelt = UNIT:FindByName("USS Theodore Roosevelt")
+    gRooseveltZone = ZONE_UNIT:New("Roosevelt Zone", gRoosevelt, nmToMetres(5))
     BASE:E("below gCentre")
     gBomberSpawn = ZONE:FindByName("BomberSpawn")
     gMaxGroupSize = 4
@@ -138,13 +147,13 @@
                     "VF-111 210", "VF-111 211", "VF-111 212", "VF-111 213", "VF-111 214", "VF-111 215", "VF-111 216"}
 
     -- elements are initialised by initSpawnZones(), into which data from table is passed and which replaces each element with a ZONE_UNIT iteratively
-    gSpawnZoneTable = {{"Spawn Zone East", gRoosevelt, nmToMetres(5), 90, nmToMetres(225)},
-                       {"Spawn Zone SouthEast", gRoosevelt, nmToMetres(10), 135, nmToMetres(150)},
-                       {"Spawn Zone South", gRoosevelt, nmToMetres(5), 180, nmToMetres(225)},
-                       {"Spawn Zone South-Southwest", gRoosevelt, nmToMetres(5), 202.5, nmToMetres(225)},
-                       {"Spawn Zone Southwest", gRoosevelt, nmToMetres(5), 225, nmToMetres(225)},
-                       {"Spawn Zone West", gRoosevelt, nmToMetres(5), 270, nmToMetres(225)},
-                       {"Spawn Zone North", gRoosevelt, nmToMetres(5), 360, nmToMetres(225)}}
+    gSpawnZoneTable = {{"Spawn Zone East", gRoosevelt, nmToMetres(30), 90, nmToMetres(250)},
+                       {"Spawn Zone SouthEast", gRoosevelt, nmToMetres(30), 135, nmToMetres(250)},
+                       {"Spawn Zone South", gRoosevelt, nmToMetres(30), 180, nmToMetres(250)},
+                       --[[{"Spawn Zone South-Southwest", gRoosevelt, nmToMetres(30), 202.5, nmToMetres(250)},
+                       {"Spawn Zone Southwest", gRoosevelt, nmToMetres(30), 225, nmToMetres(250)},
+                       {"Spawn Zone West", gRoosevelt, nmToMetres(30), 270, nmToMetres(250)},--]]
+                       {"Spawn Zone North", gRoosevelt, nmToMetres(30), 360, nmToMetres(250)}}
 
     gAircraftTypeTable = {--[[{"F-4", "fighter", "blue"}, {"F-5", "fighter", "blue"}, {"F-14", "fighter", "blue"},
                           {"F-15", "fighter", "blue"}, {"F-16", "fighter", "blue"}, {"F-18", "fighter", "blue"},--]]
@@ -177,12 +186,26 @@
         end
     end
 
+    local function getRandomSpawnZone()
+        return gSpawnZoneTable[math.random(1, #gSpawnZoneTable)]
+    end
+
     -- randomly returns a string containing a group name (these MUST conform with group names in ME)
-    local function randomAircraft()
+    -- optional argument allows classes of aircraft (i.e. bomber, fighter etc.) to be specified
+    -- if class argument is passed and initial selection does not match, function will recur
+    local function getRandomAircraft(class)
         local selection = math.random(#gAircraftTypeTable)
         for i = 1, selection do
             if i == selection then
-                return gAircraftTypeTable[i][1]
+                if class ~= nil then
+                    if gAircraftTypeTable[i][2] ~= class then
+                        return getRandomAircraft(class)
+                    else
+                        return gAircraftTypeTable[i][1]
+                    end
+                else
+                    return gAircraftTypeTable[i][1]
+                end
             end
         end
     end
@@ -228,7 +251,7 @@
     local function selectType(type)
         BASE:E("selectType")
         if type == nil then
-            return randomAircraft()
+            return getRandomAircraft()
         else
             for i = 1, #gAircraftTypeTable do
                 if type == gAircraftTypeTable[i][1] then
@@ -258,23 +281,6 @@
             return randomBearing()
         else
             return heading
-        end
-    end
-
-    -- unused test function
-    function spawnSingleGroupAtRandomLocation()
-        BASE:E("spawnRandom")
-        MESSAGE:New("spawnRandom", 40):ToAll()
-        local spawnPoint = getRandomLocation()
-        spawnGroup(spawnPoint, 250, "F-15")
-    end
-
-    -- unused test function
-    local function checkAlive(group)
-        if group:IsAlive() == true then
-            return true
-        else
-            return false
         end
     end
 
@@ -347,16 +353,32 @@
 
     --- functions called to instantiate new groups
     -- helper function using calculateOffsetPos() to set a waypoint for group argument on the passed bearing
-    function setWaypoint(group, bearing, origin, range, speed)
+    local function setWaypointFromOffset(group, bearing, origin, speed, range)
         BASE:E("setWaypoint")
         local newWaypoint = calculateOffsetPos(bearing, origin, 250000)
         group:RouteAirTo(newWaypoint:GetCoordinate(), POINT_VEC3.RoutePointAltType.BARO, POINT_VEC3.RoutePointType.TurningPoint, POINT_VEC3.RoutePointAction.TurningPoint, 800, 1)
         BASE:E("waypoint set")
     end
 
+    -- creates a new waypoint for group passed in from the location of another unit or static passed as second argument
+    local function setWaypointFromUnitLocation(group, waypointUnitLocation)
+        local newWaypoint = waypointUnitLocation:GetCoordinate()
+        group:RouteAirTo(newWaypoint:GetCoordinate(), POINT_VEC3.RoutePointAltType.BARO, POINT_VEC3.RoutePointType.TurningPoint, POINT_VEC3.RoutePointAction.TurningPoint, 800, 1)
+    end
+
+    -- determines whether new waypoint will be initialised using an offset or the location of a unit or static, then
+    -- calls appropriate function
+    local function setWaypointHelper(group, bearing, origin, waypointUnitLocation)
+        if waypointUnitLocation ~= nil then
+            setWaypointFromUnitLocation(group, waypointUnitLocation)
+        else
+            setWaypointFromOffset(group, bearing, origin)
+        end
+    end
+
     -- spawns group with characteristics set by arguments gathered from multi-layered menu
-    -- altitude is passed as a string, passed to setAltitude function which determines a random value within bands defined in gAltTable
-    function spawnGroup(location, heading, type, altitude)
+    -- altitude is passed in as a string, then passed to setAltitude function which determines a random value within bands defined in gAltTable
+    function spawnGroup(location, heading, type, altitude, waypointUnitLocation, groupSize)
         local newGroup = SPAWN:NewWithAlias(type, "AIC Group " .. type .. " " .. tostring(gSpawnedCounter))
         location:SetY(setAltitude(altitude))
         --MESSAGE:New(tostring(location:GetY())):ToAll()
@@ -365,8 +387,9 @@
         BASE:E("table not empty")
         gSpawnedTable[gSpawnedCounter] = {newGroup:SpawnFromPointVec3(location), gSpawnedCounter}
         gGroupMenuTable[gSpawnedCounter] = buildGroupMenu(gSpawnedTable[gSpawnedCounter][1])
-        setWaypoint(gSpawnedTable[gSpawnedCounter][1], heading, location)
+        setWaypointHelper(gSpawnedTable[gSpawnedCounter][1], heading, location, waypointUnitLocation)
         gSpawnedCounter = gSpawnedCounter + 1
+        return gSpawnedTable[gSpawnedCounter - 1]
         --BASE:E(gSpawnedTable[gSpawnedCounter]:GetPositionVec3())
     end
 
@@ -388,7 +411,7 @@
         spawnPresentation(selectType(type), presentation, selectLocationInZone(zone), setHeading(heading), altitude)
     end
 
-    --- Build F10 Menu
+    --- Build F10 Menu for spawning new presentations
     function buildPresentationMenu()
         menuAIC = MENU_COALITION:New(coalition.side.BLUE, "Manage Groups and Presentations") -- top level menu (under F10)
         spawnMenu = MENU_COALITION:New(coalition.side.BLUE, "Spawn a New Presentation")
@@ -424,7 +447,7 @@
         groupOptionsMenu = MENU_COALITION:New(coalition.side.BLUE, "Set Group Options", menuAIC)
     end
 
-    -- add menu items to delete group, change ROE, ROT and ECM use
+    --- build menu to control group behaviour - menu items to delete group, change ROE, ROT and ECM use
     function buildGroupMenu(thisGroup)
         local index = gSpawnedCounter
         local tempGroupMenu = MENU_COALITION:New(coalition.side.BLUE, "Manage " .. thisGroup:GetName(), groupOptionsMenu)
@@ -445,24 +468,66 @@
         return menuSet
     end
 
-    local function bearMenu(client)
-
+    -- currently unused helper functions for planned refactor of menu generation functions
+    local function checkIsCommandMenu(isCommandMenu)
+        if isCommandMenu == true then
+            return MENU_COALITION_COMMAND
+        else
+            return MENU_COALITION
+        end
     end
 
-    -- bomber intercept bomber intercept trainer
+    local function buildMenuItem(isCommandMenu, menuText, menuFunction, menuArguments)
+        return checkIsCommandMenu(isCommandMenu):New(coalition.side.blue, menuText, menuFunction, menuArguments)
+    end
 
+    local function buildSubMenu(menuData, isCommandMenu, menuText, menuFunction, menuArguments)
+        local tempMenu = {}
+        for i = 1, #menuData do
+            tempMenu[i] = buildMenuItem(isCommandMenu, menuText, menuFunction, menuArguments)
+        end
+        return tempMenu
+    end
 
+--- Bomber intercept Trainer
+--- Spawns 1 - 3 groups of bombers at a given range and bearing from a centre point (by default the Roosevelt)
+--- The number of groups can be selected or randomised
+--- spawn of latter groups may be delayed
+--- groups may make random heading changes
+--- layered zones around units trigger timed conditional checks to randomly determine post-intercept behaviour of bombers
+--- bombers may aggressively manoeuvre against fighters and make rapid speed/altitude changes
+--- Built upon basic Air Intercept Trainer
+--- under investigation: speech recognition to enable some degree of radio comm with intruders
 
-    function interceptBear()
-        -- build client menus
-        -- centre spawn on client
-        -- allow specification of TA and altitude
-        --
+    local function interceptTrainerHelper(bomberType)
+        spawnLocation = selectLocationInZone(getRandomSpawnZone())
+        return spawnGroup(spawnLocation, bearingTo(spawnLocation, getRooseveltLocation()), bomberType, "Medium", getRooseveltLocation())
+    end
+
+    local function buildBomberSelectMenu()
+        tempInterceptMenu = {}
+        for i = 1, #gAircraftTypeTable do
+            if gAircraftTypeTable[i][2] == "bomber" then
+                tempInterceptMenu[i] = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Spawn " .. gAircraftTypeTable[i][2], interceptTrainerMenu, interceptTrainerHelper, gAircraftTypeTable[i][1])
+            end
+        end
+        tempInterceptMenu[#tempInterceptMenu + 1] = tempInterceptMenu[i] MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Spawn Random Type", interceptTrainerMenu, getRandomAircraft(bomber))
+        return tempInterceptMenu
+    end
+
+    function buildInterceptTrainerMenu()
+        interceptTrainerMenu = MENU_COALITION:New(coalition.side.BLUE, "Intercept Trainer")
+        buildBomberSelectMenu()
+    end
+
+    function interceptTrainer()
+        buildInterceptTrainerMenu()
     end
 
     function main()
         initSpawnZones()
         buildPresentationMenu()
+        buildInterceptTrainerMenu()
         return 0
     end
 
