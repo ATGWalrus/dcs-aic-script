@@ -327,6 +327,7 @@
         end
         collectgarbage()
     end
+
     --- helper functions for changing ROE, RoT and ECM use
     -- all called from procedurally-generated group menu
     -- arguments are initialised by menu constructor and passed when function is called
