@@ -29,7 +29,14 @@
                         {"COM CHR727", {"Antonio B. Won Pat Intl", "COMAIR North", "COMAIR East"}, {"COMAIR North", "COMAIR East"}, true, true, 60, 15, 150},
                         {"COM KLM747", {"COMAIR Northwest", "COMAIR Northeast"}, {"Antonio B. Won Pat Intl"}, true, true, 30, 150, 300}}
 
-    gNavAirDataTable = {{"NAV USC2", {"Antonio B. Won Pat Intl", "Saipan Intl", "CVN-71"}, {"Antonio B. Won Pat Intl", "Saipan Intl", "CVN-71"}, true, true, 300, 300, 800}}
+    gMilAirDataTable = {{"MIL USC5", {"MIL Northeast"}, {"Andersen AFB"}, true, true, 600, 100, 300},
+                        {"MIL AU130", {"COMAIR South", "COMAIR Southeast"}, {"Andersen AFB"}, true, true, 300, 600, 100},
+                        {"MIL RC135", {"Andersen AFB"}, {"MIL Northeast", "MIL West", "COMAIR NNNW"}, true, true, 500, 600, 200},
+                        {"MIL USB52", {"Andersen AFB"}, {"MIL Northeast", "MIL West", "COMAIR NW2"}, true, true, 800, 600, 300},
+                        {"MIL USNC9", {"COMAIR SouthEast", "MIL Northeast"}, {"Andersen AFB"}, true, true, 600, 300, 180}}
+
+
+    gNavAirDataTable = {{"NAV USC2", {"Andersen AFB", "Saipan Intl", "USS Theodore Roosevelt"}, {"Andersen AFB", "Saipan Intl", "USS Theodore Roosevelt"}, true, true, 300, 300, 800}}
 
     --- RAT initialisation helper functions
     -- initialise RAT instance departures
@@ -88,9 +95,12 @@
     function main()
         comAirRatManager = newRatManager(gComAirDataTable, 25)
         navAirRatManager = newRatManager(gNavAirDataTable, 2)
+        milAirRatManager = newRatManager(gMilAirDataTable, 4)
         comAirRatManager:SetTspawn(120)
         comAirRatManager:Start()
         navAirRatManager:Start()
+        milAirRatManager:SetTspawn(60)
+        milAirRatManager:Start()
         return 0
     end
 

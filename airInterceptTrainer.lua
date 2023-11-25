@@ -210,6 +210,21 @@
         end
     end
 
+    -- if no argument passed, returns a random aircraft type
+    -- iteratively compares argument with elements of table holding aircraft types and returns match
+    local function selectType(type, class)
+        BASE:E("selectType")
+        if type == nil then
+            return getRandomAircraft(class)
+        else
+            for i = 1, #gAircraftTypeTable do
+                if type == gAircraftTypeTable[i][1] then
+                    return type
+                end
+            end
+        end
+    end
+
     --- helper functions for spawning groups
     --calculates random location and returns it as a POINT_VEC3 from origin, min and max range and bearing from origin arguments
     local function getRandomLocation(centre, min, max, bearing)
@@ -244,21 +259,6 @@
         local spawnLocation = zone:GetRandomPointVec3()
         spawnLocation:SetY(altitude)
         return spawnLocation
-    end
-
-    -- if no argument passed, returns a random aircraft type
-    -- iteratively compares argument with elements of table holding aircraft types and returns match
-    local function selectType(type)
-        BASE:E("selectType")
-        if type == nil then
-            return getRandomAircraft()
-        else
-            for i = 1, #gAircraftTypeTable do
-                if type == gAircraftTypeTable[i][1] then
-                    return type
-                end
-            end
-        end
     end
 
     -- returns a heading +-10 degrees of passed value
@@ -390,7 +390,7 @@
         gGroupMenuTable[gSpawnedCounter] = buildGroupMenu(gSpawnedTable[gSpawnedCounter][1])
         setWaypointHelper(gSpawnedTable[gSpawnedCounter][1], heading, location, waypointUnitLocation)
         gSpawnedCounter = gSpawnedCounter + 1
-        return gSpawnedTable[gSpawnedCounter - 1]
+
         --BASE:E(gSpawnedTable[gSpawnedCounter]:GetPositionVec3())
     end
 
@@ -509,26 +509,26 @@
         tempInterceptMenu = {}
         for i = 1, #gAircraftTypeTable do
             if gAircraftTypeTable[i][2] == "bomber" then
-                tempInterceptMenu[i] = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Spawn " .. gAircraftTypeTable[i][2], interceptTrainerMenu, interceptTrainerHelper, gAircraftTypeTable[i][1])
+                tempInterceptMenu[i] = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Spawn " .. gAircraftTypeTable[i][1], interceptTrainerMenu, interceptTrainerHelper, gAircraftTypeTable[i][1])
             end
         end
-        tempInterceptMenu[#tempInterceptMenu + 1] = tempInterceptMenu[i] MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Spawn Random Type", interceptTrainerMenu, getRandomAircraft(bomber))
+        tempInterceptMenu[#tempInterceptMenu + 1] = tempInterceptMenu[i] MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Spawn Random Type", interceptTrainerMenu, interceptTrainerHelper, selectType(nil, "bomber"))
         return tempInterceptMenu
     end
 
-    function buildInterceptTrainerMenu()
+    local function buildInterceptTrainerMenu()
         interceptTrainerMenu = MENU_COALITION:New(coalition.side.BLUE, "Intercept Trainer")
         buildBomberSelectMenu()
     end
 
-    function interceptTrainer()
+    local function interceptTrainer()
         buildInterceptTrainerMenu()
     end
 
     function main()
         initSpawnZones()
         buildPresentationMenu()
-        buildInterceptTrainerMenu()
+        interceptTrainer()
         return 0
     end
 

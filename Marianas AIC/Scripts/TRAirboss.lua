@@ -2,6 +2,9 @@
 	BASE:TraceLevel(1)
 	BASE:TraceClass("AIRBOSS")
 
+	gRecoveryTankerTable = {}
+	gAwacsTable = {}
+
 	-- No MOOSE settings menu. Comment out this line if required.
 	_SETTINGS:SetPlayerMenuOff()
 
