@@ -80,7 +80,7 @@
     -- adds instances of RAT from table argument to passed RATMANAGER
     local function initRatManager(ratManager, ratTable)
         for i = 1, #ratTable do
-            ratManager:Add(ratTable[i], 1)
+            return ratManager:Add(ratTable[i], 1)
         end
     end
 

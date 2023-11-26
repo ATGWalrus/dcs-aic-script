@@ -304,7 +304,8 @@
         end
     end
 
-    --- menu helper functions
+--- menu helper functions
+------- Debugging of removeAll required
     function deleteGroupMenu(index)
         --MESSAGE:New("inside deleteGroupMenu"):ToAll()
         for i = 1, #gGroupMenuTable do
@@ -346,6 +347,15 @@
             deleteGroupMenu(index)
         end
         collectgarbage()
+    end
+
+    local function isGroup(lGroup)
+        -- check if a group stored in gSpawnedTable is the group returned by another function
+        -- return group index
+    end
+
+    local function cleanUpDeadGroups()
+        -- if a group has been destroyed entirely, call deleteGroupMenu for that group
     end
 
     --- helper functions for changing ROE, RoT and ECM use
@@ -550,6 +560,35 @@
 
     local function interceptTrainer()
         buildInterceptTrainerMenu()
+    end
+
+    ---functions to modify group behaviour
+    local function bogeyTriggerZones(bogeyGroup)
+        local leadUnit = bogeyGroup:GetFirstUnit()
+        local zoneTable = {}
+        zoneTable[1] = ZONE_UNIT:New("close in zone", leadUnit, ftToMetres(90)) -- creates a zone of r = 90' around lead unit in group
+        zoneTable[2] = ZONE_UNIT:New("close escort zone", leadUnit, ftToMetres(120)) -- creates zone r = 120' around unit
+        zoneTable[3] = ZONE_UNIT:New("too far zone", leadUnit, ftToMetres(250))
+        return zoneTable
+    end
+
+    local function bogeyCourseChange(fighterGroup, bogeyGroup)
+        local bogeyEscortZones = bogeyTriggerZones()
+        -- if bomber has detected fighter radar, randomly determine change of course up to 60 degrees
+        -- start timer of randomly determined duration which will return bomberGroup to heading to original waypoint
+        -- after return to heading for original waypoint, timer starts for a further course change if fighter radar is still detected
+    end
+
+    local function bogeyReturnToCourse(bogeyGroup)
+        -- return bogey to original course (e.g. toward the CVBG or an airbase)
+    end
+
+    local function bogeyManoeuvreAggressive(fighterGroup, bogeyGroup)
+        -- if fighter is within closeEscortZone, randomly determine if bogey will attempt an aggressive manoeuvre (e.g. hard turn into fighter)
+    end
+
+    local function bogeyGoHome(fighterGroup, bogeyGroup)
+        -- if fighter is within close escort or close in zone, timer starts which will make a random check at intervals to RTB bogey
     end
 
     --- air to air range trainer
