@@ -14,10 +14,10 @@
 
     -- Vec3 function coalition.getMainRefPoint(enum coalition.side coalition) function call returning bullseye as a Vec3
 
-    BASE:TraceOnOff(true)
-    BASE:TraceLevel(1)
-    BASE:TraceClass("SPAWN")
-    BASE:TraceClass("GROUP")
+    --BASE:TraceOnOff(true)
+    --BASE:TraceLevel(1)
+    --BASE:TraceClass("SPAWN")
+    --BASE:TraceClass("GROUP")
 
     --MESSAGE:New(gAircraftTypeTable[1][1]):ToAll()
 
@@ -93,9 +93,9 @@
     -- calculates the relative position of one object possessing a position from another i.e. the parameters bearingFromOrigin and separation represent the hypotenuse of the triangle /n
     -- having as its centre the object passed as origin. Returns new position as a POINT_VEC3
     function calculateOffsetPos(bearingFromOrigin, origin, separation, altitude)
-        MESSAGE:New("origin.z: " .. tostring(origin.z)):ToAll()
+        --MESSAGE:New("origin.z: " .. tostring(origin.z)):ToAll()
         local z = origin.z + (separation * math.sin(math.rad(bearingFromOrigin)))
-        MESSAGE:New("output z: " .. tostring(z)):ToAll()
+        --MESSAGE:New("output z: " .. tostring(z)):ToAll()
         local y = randomAltitude()
         local x = origin.x + (separation * math.cos(math.rad(bearingFromOrigin)))
         local locationObj = POINT_VEC3:New(x, y, z)
@@ -123,8 +123,7 @@
     gRooseveltZone = ZONE_UNIT:New("Roosevelt Zone", gRoosevelt, nmToMetres(5))
     BASE:E("below gCentre")
     gBomberSpawn = ZONE:FindByName("BomberSpawn")
-    gMaxGroupSize = 4
-    gMinGroupSize = 1
+    gGroupSize = {1, 2, 3, 4}
     gMaxSpawnRange = nmToMetres(200) -- max range from gCentre at which groups can be spawned
     gMinSpawnRange = nmToMetres(100) -- min range ditto above
     gMaxAltitude = ftToMetres(32000) -- max altitude at which a group can be spawned
@@ -190,6 +189,14 @@
         return gSpawnZoneTable[math.random(1, #gSpawnZoneTable)]
     end
 
+    local function setGroupSize(groupSize)
+        if groupSize ~= nil then
+            return groupSize
+        else
+            return (math.random(1, 4))
+        end
+    end
+
     -- randomly returns a string containing a group name (these MUST conform with group names in ME)
     -- optional argument allows classes of aircraft (i.e. bomber, fighter etc.) to be specified
     -- if class argument is passed and initial selection does not match, function will recur
@@ -223,6 +230,19 @@
                 end
             end
         end
+    end
+
+    local function buildTypeOfClassTable(class)
+        local tableSize = 1
+        local tempTypeTable = {}
+        for i = 1, #gAircraftTypeTable do
+            if gAircraftTypeTable[i][2] == class then
+                tempTypeTable[tableSize] = gAircraftTypeTable[i][1]
+                tableSize = tableSize + 1
+                MESSAGE:New(tostring(tableSize)):ToAll()
+            end
+        end
+        return tempTypeTable
     end
 
     --- helper functions for spawning groups
@@ -357,14 +377,16 @@
     local function setWaypointFromOffset(group, bearing, origin, speed, range)
         BASE:E("setWaypoint")
         local newWaypoint = calculateOffsetPos(bearing, origin, 250000)
-        group:RouteAirTo(newWaypoint:GetCoordinate(), POINT_VEC3.RoutePointAltType.BARO, POINT_VEC3.RoutePointType.TurningPoint, POINT_VEC3.RoutePointAction.TurningPoint, 800, 1)
+        group:RouteAirTo(newWaypoint:GetCoordinate(), POINT_VEC3.RoutePointAltType.BARO, POINT_VEC3.RoutePointType.TurningPoint,
+                POINT_VEC3.RoutePointAction.TurningPoint, 800, 1)
         BASE:E("waypoint set")
     end
 
     -- creates a new waypoint for group passed in from the location of another unit or static passed as second argument
     local function setWaypointFromUnitLocation(group, waypointUnitLocation)
         local newWaypoint = waypointUnitLocation:GetCoordinate()
-        group:RouteAirTo(newWaypoint:GetCoordinate(), POINT_VEC3.RoutePointAltType.BARO, POINT_VEC3.RoutePointType.TurningPoint, POINT_VEC3.RoutePointAction.TurningPoint, 800, 1)
+        group:RouteAirTo(newWaypoint:GetCoordinate(), POINT_VEC3.RoutePointAltType.BARO, POINT_VEC3.RoutePointType.TurningPoint,
+                POINT_VEC3.RoutePointAction.TurningPoint, 800, 1)
     end
 
     -- determines whether new waypoint will be initialised using an offset or the location of a unit or static, then
@@ -379,12 +401,14 @@
 
     -- spawns group with characteristics set by arguments gathered from multi-layered menu
     -- altitude is passed in as a string, then passed to setAltitude function which determines a random value within bands defined in gAltTable
-    function spawnGroup(location, heading, type, altitude, waypointUnitLocation, groupSize)
+    -- if the new group is desired to be spawned on a heading toward another unit or static, the location of that object is passed
+    function spawnGroup(location, heading, type, altitude, groupSize, waypointUnitLocation)
         local newGroup = SPAWN:NewWithAlias(type, "AIC Group " .. type .. " " .. tostring(gSpawnedCounter))
         location:SetY(setAltitude(altitude))
         --MESSAGE:New(tostring(location:GetY())):ToAll()
         newGroup:InitHeading(heading)
         newGroup:InitGroupHeading(heading)
+        newGroup:InitGrouping(setGroupSize(groupSize))
         BASE:E("table not empty")
         gSpawnedTable[gSpawnedCounter] = {newGroup:SpawnFromPointVec3(location), gSpawnedCounter}
         gGroupMenuTable[gSpawnedCounter] = buildGroupMenu(gSpawnedTable[gSpawnedCounter][1])
@@ -395,21 +419,21 @@
     end
 
     -- spawns first group in a presentation (via spawnGroup()) and iteratively spawns remaining groups in presentation
-    function spawnPresentation(type, selectedPresentation, origin, groupHeadingArg, altitude)
-        BASE:E("spawnPresentation")
+    function spawnPresentation(selectedPresentation, type, origin, groupHeadingArg, altitude, groupSize)
+        --BASE:E("spawnPresentation")
         local leadPosition = checkLocation(origin)
         local groupHeading = checkHeading(groupHeadingArg)
         local separation = randomRange(selectedPresentation[3], selectedPresentation[4])
-        spawnGroup(leadPosition, groupHeading, type, altitude)
+        spawnGroup(leadPosition, groupHeading, type, altitude, groupSize)
         for i = 1, #selectedPresentation[5] do
             local angleOff = selectedPresentation[5][i] + groupHeading
-            spawnGroup(calculateOffsetPos(angleOff, leadPosition, separation), groupHeading, type, altitude)
+            spawnGroup(calculateOffsetPos(angleOff, leadPosition, separation), groupHeading, type, altitude, groupSize)
         end
-        MESSAGE:New(selectedPresentation[2] .. "-group " .. selectedPresentation[1] .. " presentation spawned"):ToAll()
+        --MESSAGE:New(selectedPresentation[2] .. "-group " .. selectedPresentation[1] .. " presentation spawned"):ToAll()
     end
 
-    function spawnAICPresHelper(type, presentation, zone, altitude, heading)
-        spawnPresentation(selectType(type), presentation, selectLocationInZone(zone), setHeading(heading), altitude)
+    function spawnAICPresHelper(presentation, type, zone, altitude, heading, groupSize)
+        spawnPresentation(presentation, selectType(type), selectLocationInZone(zone), setHeading(heading), altitude, groupSize)
     end
 
     --- Build F10 Menu for spawning new presentations
@@ -422,40 +446,41 @@
         local menuItemAltitude
         local menuItemHeading
         for i = 1, #gPresentationTypeTable do
-            menuItemPresentation = MENU_COALITION:New(coalition.side.BLUE, "Spawn " .. tostring(gPresentationTypeTable[i][2]) .. "-Group " .. gPresentationTypeTable[i][1], spawnMenu)
+            menuItemPresentation = MENU_COALITION:New(coalition.side.BLUE,
+                    "Spawn " .. tostring(gPresentationTypeTable[i][2]) .. "-Group " .. gPresentationTypeTable[i][1] .. "...", spawnMenu)
             gSpawnMenuTable[i] = menuItemPresentation
             for j = 1, #gAircraftTypeTable do
-                menuItemType = MENU_COALITION:New(coalition.side.BLUE, gAircraftTypeTable[j][1], menuItemPresentation)
+                menuItemType = MENU_COALITION:New(coalition.side.BLUE, gAircraftTypeTable[j][1] .. "...", menuItemPresentation)
                 gTypeMenuTable[j] = menuItemType
                 for k = 1, #gSpawnZoneTable do
-                    menuItemZone = MENU_COALITION:New(coalition.side.BLUE, "Spawn in " .. gSpawnZoneTable[k]:GetName(), menuItemType)
+                    menuItemZone = MENU_COALITION:New(coalition.side.BLUE, "Spawn in " .. gSpawnZoneTable[k]:GetName() .. "...", menuItemType)
                     gZoneMenuTable[k] = menuItemZone
                     for l = 1, #gAltTable do
-                        menuItemAltitude = MENU_COALITION:New(coalition.side.BLUE, "Spawn at " .. gAltTable[l] .. " altitude", menuItemZone)
+                        menuItemAltitude = MENU_COALITION:New(coalition.side.BLUE, "Spawn at " .. gAltTable[l] .. " altitude...", menuItemZone)
                         gAltMenuTable[l] = menuItemAltitude
                         for m = 1, #gSpawnHeadingTable do
-                            menuItemHeading = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Set Spawn Heading " .. tostring(gSpawnHeadingTable[m]), menuItemAltitude,
-                                    spawnAICPresHelper, gAircraftTypeTable[j][1], gPresentationTypeTable[i],  gSpawnZoneTable[k], gAltTable[l], gSpawnHeadingTable[m])
+                            menuItemHeading = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Set Spawn Heading " .. tostring(gSpawnHeadingTable[m]) .. "...", menuItemAltitude,
+                                    spawnAICPresHelper, gPresentationTypeTable[i], gAircraftTypeTable[j][1], gSpawnZoneTable[k], gAltTable[l], gSpawnHeadingTable[m])
                             gBearingMenuItems[m] = menuItemHeading
                         end
                     end
                 end
             end
         end
-        deleteMenu = MENU_COALITION:New(coalition.side.BLUE, "Delete Groups", menuAIC)
-        deleteAllMenu = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Delete All Groups", deleteMenu, removeAll)
-        deleteSingleMenu = MENU_COALITION:New(coalition.side.BLUE, "Delete a Group", deleteMenu)
-        groupOptionsMenu = MENU_COALITION:New(coalition.side.BLUE, "Set Group Options", menuAIC)
+        --deleteMenu = MENU_COALITION:New(coalition.side.BLUE, "Delete Groups...", menuAIC) -- temporarily disabled
+        --deleteAllMenu = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Delete All Groups", deleteMenu, removeAll) -- temporarily disabled due to bug resulting in called fn not working under some circumstances
+        deleteSingleMenu = MENU_COALITION:New(coalition.side.BLUE, "Delete a Group...", menuAIC) -- parent menu temporarily set as AIC top menu vice deleteMenu
+        groupOptionsMenu = MENU_COALITION:New(coalition.side.BLUE, "Set Group Options...", menuAIC)
     end
 
     --- build menu to control group behaviour - menu items to delete group, change ROE, ROT and ECM use
     function buildGroupMenu(thisGroup)
         local index = gSpawnedCounter
-        local tempGroupMenu = MENU_COALITION:New(coalition.side.BLUE, "Manage " .. thisGroup:GetName(), groupOptionsMenu)
-        local tempROEMenu = MENU_COALITION:New(coalition.side.BLUE, "Set ROE", tempGroupMenu)
-        local tempROTMenu = MENU_COALITION:New(coalition.side.BLUE, "Set ROT", tempGroupMenu)
-        local tempECMMenu = MENU_COALITION:New(coalition.side.BLUE, "Set ECM Use", tempGroupMenu)
-        local tempDeleteMenu = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Delete " .. thisGroup:GetName(), deleteSingleMenu, deleteSingleGroup, index)
+        local tempGroupMenu = MENU_COALITION:New(coalition.side.BLUE, "Manage " .. thisGroup:GetName() .. "...", groupOptionsMenu)
+        local tempROEMenu = MENU_COALITION:New(coalition.side.BLUE, "Set ROE...", tempGroupMenu)
+        local tempROTMenu = MENU_COALITION:New(coalition.side.BLUE, "Set ROT...", tempGroupMenu)
+        local tempECMMenu = MENU_COALITION:New(coalition.side.BLUE, "Set ECM Use...", tempGroupMenu)
+        local tempDeleteMenu = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Delete " .. thisGroup:GetName() .. "...", deleteSingleMenu, deleteSingleGroup, index)
         local menuSet = {index, tempGroupMenu, tempROEMenu, tempROTMenu, tempECMMenu, tempDeleteMenu}
         for i = 1, #gROETable do
             menuSet[#menuSet + i] = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Set ROE " .. gROETable[i][1], menuSet[3], setROE, thisGroup, gROETable[i][2])
@@ -502,17 +527,19 @@
 
     local function interceptTrainerHelper(bomberType)
         spawnLocation = selectLocationInZone(getRandomSpawnZone())
-        return spawnGroup(spawnLocation, bearingTo(spawnLocation, getRooseveltLocation()), bomberType, "Medium", getRooseveltLocation())
+        return spawnGroup(spawnLocation, bearingTo(spawnLocation, getRooseveltLocation()), bomberType, "Medium", nil, getRooseveltLocation())
     end
 
     local function buildBomberSelectMenu()
         tempInterceptMenu = {}
         for i = 1, #gAircraftTypeTable do
             if gAircraftTypeTable[i][2] == "bomber" then
-                tempInterceptMenu[i] = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Spawn " .. gAircraftTypeTable[i][1], interceptTrainerMenu, interceptTrainerHelper, gAircraftTypeTable[i][1])
+                tempInterceptMenu[i] = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Spawn " .. gAircraftTypeTable[i][1] .. "...",
+                        interceptTrainerMenu, interceptTrainerHelper, gAircraftTypeTable[i][1])
             end
         end
-        tempInterceptMenu[#tempInterceptMenu + 1] = tempInterceptMenu[i] MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Spawn Random Type", interceptTrainerMenu, interceptTrainerHelper, selectType(nil, "bomber"))
+        tempInterceptMenu[#tempInterceptMenu + 1] = tempInterceptMenu[i] MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Spawn Random Type...",
+                interceptTrainerMenu, interceptTrainerHelper, selectType(nil, "bomber"))
         return tempInterceptMenu
     end
 
@@ -525,10 +552,42 @@
         buildInterceptTrainerMenu()
     end
 
+    --- air to air range trainer
+    --- spawns hostile fighters in a specified zone
+    --- supports the calling of multiple presentations and multi-aircraft groups
+
+    local function airToAirRangeHelper(groupType, altitude, groupSize, groupFormation)
+        spawnAICPresHelper(gPresentationTypeTable[6], groupType,  ZONE:FindByName("A-A Start Zone"), altitude, 360, groupSize)
+    end
+
+    local function buildAirToAirRangeMenu()
+        airToAirRangeTopMenu = MENU_COALITION:New(coalition.side.BLUE, "Air to Air Range")
+        airToAirRangeTypeMenu = {}
+        airToAirRangeFlightSizeMenu = {}
+        airToAirRangeAltMenu = {}
+        local typeTable = buildTypeOfClassTable("fighter")
+        for i = 1, #typeTable do
+            airToAirRangeTypeMenu[i] = MENU_COALITION:New(coalition.side.BLUE, typeTable[i], airToAirRangeTopMenu)
+            for j = 1, 4 do
+                airToAirRangeFlightSizeMenu[j] = MENU_COALITION:New(coalition.side.BLUE, tostring(j) .. " ship flight", airToAirRangeTypeMenu[i])
+                for k = 1, #gAltTable do
+                    airToAirRangeAltMenu[k] = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Spawn flight at " .. gAltTable[k] .. " altitude",
+                            airToAirRangeFlightSizeMenu[j], airToAirRangeHelper, typeTable[i], gAltTable[k], j)
+                end
+            end
+        end
+        return airToAirRangeTypeMenu, airToAirRangeFlightSizeMenu, airToAirRangeAltMenu
+    end
+
+    local function airToAirRange()
+        buildAirToAirRangeMenu()
+    end
+
     function main()
         initSpawnZones()
         buildPresentationMenu()
         interceptTrainer()
+        airToAirRange()
         return 0
     end
 
