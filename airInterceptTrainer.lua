@@ -181,7 +181,7 @@
             local tempZone = ZONE_UNIT:New(gSpawnZoneTable[i][1], gSpawnZoneTable[i][2], gSpawnZoneTable[i][3],
                     {rho = nmToMetres(200), theta = gSpawnZoneTable[i][4], relative_to_unit = false})
             gSpawnZoneTable[i] = tempZone
-            gSpawnZoneTable[i]:DrawZone(-1, {1, 0, 0}, 1, {1, 0, 0}, 0.15, 1, true)
+            --gSpawnZoneTable[i]:DrawZone(-1, {1, 0, 0}, 1, {1, 0, 0}, 0.15, 1, true) -- draws a red circle bounding generated spawn zones
         end
     end
 
