@@ -156,10 +156,10 @@
 
     gAircraftTypeTable = {--[[{"F-4", "fighter", "blue"}, {"F-5", "fighter", "blue"}, {"F-14", "fighter", "blue"},
                           {"F-15", "fighter", "blue"}, {"F-16", "fighter", "blue"}, {"F-18", "fighter", "blue"},--]]
-                          {"Bear", "bomber", "red"}, {"Backfire", "bomber", "red"},
-                          {"Farmer", "fighter", "red"}, {"Fishbed", "fighter", "red"},
-                          {"Flogger", "fighter", "red"}, {"Foxbat", "fighter", "red"}, {"Fulcrum", "fighter", "red"},
-                          {"Flanker", "fighter", "red"}, {"Foxhound", "fighter", "red"}}
+                          {"Bear", "bomber", "red"}, {"Backfire", "bomber", "red"}, {"Badger", "bomber", "red"},
+                          {"Farmer", "fighter", "red"}, {"Fishbed", "fighter", "red"}, {"Flogger", "fighter", "red"},
+                          {"Foxbat", "fighter", "red"}, {"Fulcrum", "fighter", "red"}, {"Flanker", "fighter", "red"},
+                          {"Foxhound", "fighter", "red"}}
 
     gSpawnHeadingTable = {360, 45, 90, 135, 180, 270, 315}
     gAltTable = {"Low", "Medium", "High"}
@@ -548,7 +548,7 @@
                         interceptTrainerMenu, interceptTrainerHelper, gAircraftTypeTable[i][1])
             end
         end
-        tempInterceptMenu[#tempInterceptMenu + 1] = tempInterceptMenu[i] MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Spawn Random Type...",
+        tempInterceptMenu[#tempInterceptMenu + 1] = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Spawn Random Type...",
                 interceptTrainerMenu, interceptTrainerHelper, selectType(nil, "bomber"))
         return tempInterceptMenu
     end
