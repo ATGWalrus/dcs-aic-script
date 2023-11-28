@@ -649,8 +649,8 @@
         spawnGroup(spawnLocation, targetHeading, "B-52", "medium", 1)
     end
 
-    local function interceptTrainer()
-        local Client_SET = SET_CLIENT:New():FilterActive(Active)--[[:FilterPrefixes("VF-111")--]]:FilterStart()
+    --[[local function interceptTrainer()
+        local Client_SET = SET_CLIENT:New():FilterActive(Active):FilterPrefixes("VF-111"):FilterStart()
         MESSAGE:New(tostring(#Client_SET)):ToAll()
         Client_SET:ForEachClient(
         function(Client)
@@ -664,7 +664,7 @@
                         interceptTrainerTopMenu, Client, targetSpawnZone, interceptTrainerHelper, Client, targetSpawnZone, gSpawnHeadingTable[i])
             end
         end)
-    end
+    end--]]
 
     --- air to air range
     --- spawns hostile fighters in a specified zone
