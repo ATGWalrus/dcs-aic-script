@@ -176,7 +176,7 @@
 
     --- further helper functions requiring access to global variables
     -- generates spawn zones from parameters defined in each element of gSpawnZoneTable
-    function initSpawnZones()
+    function initSpawnZones(zoneTable, lRho, lTheta)
         for i = 1, #gSpawnZoneTable do
             local tempZone = ZONE_UNIT:New(gSpawnZoneTable[i][1], gSpawnZoneTable[i][2], gSpawnZoneTable[i][3],
                     {rho = nmToMetres(200), theta = gSpawnZoneTable[i][4], relative_to_unit = false})
@@ -230,13 +230,15 @@
     end
 
     local function aircraftIsClass(typeTableElement, class)
-        if typeTableElement[3] == class or class == nil then return true
+        --MESSAGE:New(typeTableElement[2]):ToAll()
+        if typeTableElement[2] == class or class == nil then return true
         else return false
         end
     end
 
     local function aircraftIsSide(typeTableElement, side)
-        if typeTableElement[2] == side or side == nil then return true
+        --MESSAGE:New(typeTableElement[2]):ToAll()
+        if typeTableElement[3] == side or side == nil then return true
         else return false
         end
     end
@@ -417,17 +419,18 @@
     end
 
     -- creates a new waypoint for group passed in from the location of another unit or static passed as second argument
-    local function setWaypointFromUnitLocation(group, waypointUnitLocation)
+    local function setWaypointFromUnitLocation(group, waypointUnitLocation, altitude)
         local newWaypoint = waypointUnitLocation:GetCoordinate()
+        newWaypoint:SetY(setAltitude(altitude))
         group:RouteAirTo(newWaypoint:GetCoordinate(), POINT_VEC3.RoutePointAltType.BARO, POINT_VEC3.RoutePointType.TurningPoint,
                 POINT_VEC3.RoutePointAction.TurningPoint, 800, 1)
     end
 
     -- determines whether new waypoint will be initialised using an offset or the location of a unit or static, then
     -- calls appropriate function
-    local function setWaypointHelper(group, bearing, origin, waypointUnitLocation)
+    local function setWaypointHelper(group, bearing, origin, waypointUnitLocation, altitude)
         if waypointUnitLocation ~= nil then
-            setWaypointFromUnitLocation(group, waypointUnitLocation)
+            setWaypointFromUnitLocation(group, waypointUnitLocation, altitude)
         else
             setWaypointFromOffset(group, bearing, origin)
         end
@@ -451,16 +454,6 @@
 
     end
 
-    -- creates trigger zones around lead unit in group
-    local function setBogeyTriggerZones(bogeyGroup)
-        local leadUnit = bogeyGroup:GetFirstUnit()
-        local zoneTable = {}
-        zoneTable[1] = ZONE_UNIT:New("close in zone", leadUnit, ftToMetres(90)) -- creates a zone of r = 90' around lead unit in group
-        zoneTable[2] = ZONE_UNIT:New("close escort zone", leadUnit, ftToMetres(120)) -- creates zone r = 120' around unit
-        zoneTable[3] = ZONE_UNIT:New("too far zone", leadUnit, ftToMetres(250))
-        return zoneTable
-    end
-
     -- spawns group with characteristics set by arguments gathered from multi-layered menu
     -- altitude is passed in as a string, then passed to setAltitude function which determines a random value within bands defined in gAltTable
     -- if the new group is desired to be spawned on a heading toward another unit or static, the location of that object is passed
@@ -474,9 +467,9 @@
         newGroup:InitGrouping(setGroupSize(groupSize))
         BASE:E("table not empty")
         gSpawnedTable[gSpawnedCounter] = {newGroup:SpawnFromPointVec3(location), gSpawnedCounter,
-                                          TIMER:New(groupDestroyedHelper, gSpawnedCounter):Start(5, 5)}
+                                          TIMER:New(groupDestroyedHelper, gSpawnedCounter):Start(0, 0.5)}
         gGroupMenuTable[gSpawnedCounter] = buildGroupMenu(gSpawnedTable[gSpawnedCounter][1]), setWaypointHelper(gSpawnedTable[gSpawnedCounter][1],
-                heading, location, waypointUnitLocation)
+                heading, location, waypointUnitLocation, altitude)
         --gGroupMenuTable[gSpawnedCounter]:HandleEvent(EVENTS.Dead)
         gSpawnedCounter = gSpawnedCounter + 1
         --BASE:E(gSpawnedTable[gSpawnedCounter]:GetPositionVec3())
@@ -580,7 +573,28 @@
         return tempMenu
     end
 
---- Bomber intercept Trainer
+
+    ---functions to modify group behaviour
+    local function bogeyCourseChange(fighterGroup, bogeyGroup)
+        --local bogeyEscortZones = setBogeyTriggerZones()
+        -- if bomber has detected fighter radar, randomly determine change of course up to 60 degrees
+        -- start timer of randomly determined duration which will return bomberGroup to heading to original waypoint
+        -- after return to heading for original waypoint, timer starts for a further course change if fighter radar is still detected
+    end
+
+    local function bogeyReturnToCourse(bogeyGroup)
+        -- return bogey to original course (e.g. toward the CVBG or an airbase)
+    end
+
+    local function bogeyManoeuvreAggressive(fighterGroup, bogeyGroup)
+        -- if fighter is within closeEscortZone, randomly determine if bogey will attempt an aggressive manoeuvre (e.g. hard turn into fighter)
+    end
+
+    local function bogeyGoHome(fighterGroup, bogeyGroup)
+        -- if fighter is within close escort or close in zone, timer starts which will make a random check at intervals to RTB bogey
+    end
+
+--- Fleet Defence Trainer
 --- Spawns 1 - 3 groups of bombers at a given range and bearing from a centre point (by default the Roosevelt)
 --- The number of groups can be selected or randomised
 --- spawn of latter groups may be delayed
@@ -590,14 +604,26 @@
 --- Built upon basic Air Intercept Trainer
 --- under investigation: speech recognition to enable some degree of radio comm with intruders
 
+    -- creates trigger zones around lead unit in group
+    local function setBogeyTriggerZones(bogeyGroup)
+        local leadUnit = bogeyGroup:GetFirstUnit()
+        local zoneTable = {}
+        zoneTable[1] = ZONE_UNIT:New("close in zone", leadUnit, ftToMetres(90)) -- creates a zone of r = 90' around lead unit in group
+        zoneTable[2] = ZONE_UNIT:New("close escort zone", leadUnit, ftToMetres(120)) -- creates zone r = 120' around unit
+        zoneTable[3] = ZONE_UNIT:New("too far zone", leadUnit, ftToMetres(250))
+        return zoneTable
+    end
+
     local function fleetDefenceTrainerHelper(bomberType)
         spawnLocation = selectLocationInZone(getRandomSpawnZone())
-        setBogeyTriggerZones(spawnGroup(spawnLocation, bearingTo(spawnLocation, getRooseveltLocation()), bomberType, "Medium", nil, getRooseveltLocation()))
+        local tempGroup = spawnGroup(spawnLocation, bearingTo(spawnLocation, getRooseveltLocation()), bomberType, "Medium", nil, getRooseveltLocation())
+        setBogeyTriggerZones(tempGroup)
     end
 
     local function buildBomberSelectMenu(side)
         tempInterceptMenu = {}
         tempTypeTable = buildTypeOfClassSideTable("bomber", "blue")
+        MESSAGE:New(tostring(#tempTypeTable)):ToAll()
         for i = 1, #tempTypeTable do
             tempInterceptMenu[i] = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Spawn " .. tempTypeTable[i] .. "...",
                     fleetDefenderTrainerMenu, fleetDefenceTrainerHelper, tempTypeTable[i])
@@ -616,27 +642,31 @@
         fleetDefenceTrainerMenu()
     end
 
-    ---functions to modify group behaviour
-    local function bogeyCourseChange(fighterGroup, bogeyGroup)
-        local bogeyEscortZones = setBogeyTriggerZones()
-        -- if bomber has detected fighter radar, randomly determine change of course up to 60 degrees
-        -- start timer of randomly determined duration which will return bomberGroup to heading to original waypoint
-        -- after return to heading for original waypoint, timer starts for a further course change if fighter radar is still detected
+    --- Intercept Trainer
+    --- Spawns a single aircraft 100nm from client at a set bearing and set TA on which to practice stern conversion intercepts
+    local function interceptTrainerHelper(Client, spawnZone, targetHeading)
+        local spawnLocation = selectLocationInZone(spawnZone)
+        spawnGroup(spawnLocation, targetHeading, "B-52", "medium", 1)
     end
 
-    local function bogeyReturnToCourse(bogeyGroup)
-        -- return bogey to original course (e.g. toward the CVBG or an airbase)
+    local function interceptTrainer()
+        local Client_SET = SET_CLIENT:New():FilterActive(Active)--[[:FilterPrefixes("VF-111")--]]:FilterStart()
+        MESSAGE:New(tostring(#Client_SET)):ToAll()
+        Client_SET:ForEachClient(
+        function(Client)
+            local fighter = Client:GetUnits()
+            local playerName = Client:GetPlayerName()
+            local targetSpawnZone = ZONE_UNIT:New("Intercept Target Spawn Zone", fighter, nmToMetres(15), {rho = nmToMetres(100), theta = 360, relative_to_unit = true})
+            local interceptTrainerTopMenu = MENU_GROUP:New(Grp, "Intercept Trainer")
+            local clientMenuTable = {}
+            for i = 1, #gSpawnHeadingTable do
+                clientMenuTable[i] = MENU_GROUP_COMMAND:New(Client:GetGroup(), "Spawn Intercept Target on heading " .. tostring(#gSpawnHeadingTable[i]),
+                        interceptTrainerTopMenu, Client, targetSpawnZone, interceptTrainerHelper, Client, targetSpawnZone, gSpawnHeadingTable[i])
+            end
+        end)
     end
 
-    local function bogeyManoeuvreAggressive(fighterGroup, bogeyGroup)
-        -- if fighter is within closeEscortZone, randomly determine if bogey will attempt an aggressive manoeuvre (e.g. hard turn into fighter)
-    end
-
-    local function bogeyGoHome(fighterGroup, bogeyGroup)
-        -- if fighter is within close escort or close in zone, timer starts which will make a random check at intervals to RTB bogey
-    end
-
-    --- air to air range trainer
+    --- air to air range
     --- spawns hostile fighters in a specified zone
     --- supports the calling of multiple presentations and multi-aircraft groups
 
@@ -672,6 +702,7 @@
         buildPresentationMenu()
         fleetDefenceTrainer()
         airToAirRange()
+        --interceptTrainer()
         return 0
     end
 
