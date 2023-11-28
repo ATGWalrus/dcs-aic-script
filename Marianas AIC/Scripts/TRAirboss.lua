@@ -11,13 +11,21 @@
 	-- Create AIRBOSS object.
 	AirbossRoosevelt=AIRBOSS:New("USS Theodore Roosevelt")
 
-	-- S-3B Recovery Tanker spawning in air.
-	local tanker=RECOVERYTANKER:New("USS Theodore Roosevelt", "Texaco Group")
+	-- S-3B Recovery Tanker spawning on deck
+	local tankerLow =RECOVERYTANKER:New("USS Theodore Roosevelt", "Texaco Group")
 	--tanker:SetTakeoffAir()
-	tanker:SetRadio(344.025)
-	tanker:SetModex(511)
-	tanker:SetTACAN(33, "TKR")
-	tanker:__Start(1)
+	tankerLow:SetRadio(344.025)
+	tankerLow:SetModex(700)
+	tankerLow:SetTACAN(103, "TK")
+	tankerLow:__Start(1)
+
+	-- S-3B Recovery Tanker spawning on deck
+	local tankerHigh =RECOVERYTANKER:New("USS Theodore Roosevelt", "Texaco Group-2")
+	--tanker:SetTakeoffAir()
+	tankerHigh:SetRadio(367.575)
+	tankerHigh:SetModex(703)
+	tankerHigh:SetTACAN(101,"TR")
+	tankerHigh:__Start(1)
 
 	-- E-2D AWACS spawning on Roosevelt.
 	local awacs=RECOVERYTANKER:New("USS Theodore Roosevelt", "E-2D Wizard Group")
@@ -58,10 +66,10 @@
 	AirbossRoosevelt:DeleteAllRecoveryWindows(2)	-- sanitise recovery window table
 
 	--- Function called when recovery tanker is started.
-	function tanker:OnAfterStart(From,Event,To)
+	function tankerLow:OnAfterStart(From, Event, To)
 
 		--Set recovery tanker.
-		AirbossRoosevelt:SetRecoveryTanker(tanker)
+		AirbossRoosevelt:SetRecoveryTanker(tankerLow)
 
 
 		-- Use tanker as radio relay unit for LSO transmissions.
@@ -72,7 +80,7 @@
 	--- Function called when AWACS is started.
 	function awacs:OnAfterStart(From,Event,To)
 		-- Set AWACS.
-		AirbossRoosevelt:SetRecoveryTanker(tanker)
+		AirbossRoosevelt:SetRecoveryTanker(tankerLow)
 		--UNIT:FindByName(awacs:GetUnitName()):CommandEPLRS(false, 5)
 		--awacs.eplrs = false
 	end

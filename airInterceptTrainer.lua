@@ -123,7 +123,7 @@
     gRooseveltZone = ZONE_UNIT:New("Roosevelt Zone", gRoosevelt, nmToMetres(5))
     BASE:E("below gCentre")
     gBomberSpawn = ZONE:FindByName("BomberSpawn")
-    gGroupSize = {1, 2, 3, 4}
+    gGroupSize = {1, 2}
     gMaxSpawnRange = nmToMetres(200) -- max range from gCentre at which groups can be spawned
     gMinSpawnRange = nmToMetres(100) -- min range ditto above
     gMaxAltitude = ftToMetres(32000) -- max altitude at which a group can be spawned
@@ -159,7 +159,7 @@
                           {"Bear", "bomber", "red"}, {"Backfire", "bomber", "red"}, {"Badger", "bomber", "red"},
                           {"Farmer", "fighter", "red"}, {"Fishbed", "fighter", "red"}, {"Flogger", "fighter", "red"},
                           {"Foxbat", "fighter", "red"}, {"Fulcrum", "fighter", "red"}, {"Flanker", "fighter", "red"},
-                          {"Foxhound", "fighter", "red"}}
+                          {"Foxhound", "fighter", "red"}, {"B-52", "bomber", "blue"}, {"B-1", "bomber", "blue"}}
 
     gSpawnHeadingTable = {360, 45, 90, 135, 180, 270, 315}
     gAltTable = {"Low", "Medium", "High"}
@@ -200,15 +200,27 @@
     -- randomly returns a string containing a group name (these MUST conform with group names in ME)
     -- optional argument allows classes of aircraft (i.e. bomber, fighter etc.) to be specified
     -- if class argument is passed and initial selection does not match, function will recur
-    local function getRandomAircraft(class)
+    local function getRandomAircraft(class, side)    -- this function is desperate need of refactor; very ugly
         local selection = math.random(#gAircraftTypeTable)
         for i = 1, selection do
             if i == selection then
-                if class ~= nil then
-                    if gAircraftTypeTable[i][2] ~= class then
-                        return getRandomAircraft(class)
-                    else
+                if class ~= nil and side ~= nil then
+                    if gAircraftTypeTable[i][2] == class and gAircraftTypeTable[i][3] == side then
                         return gAircraftTypeTable[i][1]
+                    else
+                        return getRandomAircraft(class, side)
+                    end
+                elseif class ~= nil and side == nil then
+                    if gAircraftTypeTable[i][2] == class then
+                        return gAircraftTypeTable[i][1]
+                    else
+                        return getRandomAircraft(class)
+                    end
+                elseif class == nil and side ~= nil then
+                    if gAircraftTypeTable[i][3] == side then
+                        return gAircraftTypeTable[i][1]
+                    else
+                        return getRandomAircraft(nil, side)
                     end
                 else
                     return gAircraftTypeTable[i][1]
@@ -217,12 +229,24 @@
         end
     end
 
+    local function aircraftIsClass(typeTableElement, class)
+        if typeTableElement[3] == class or class == nil then return true
+        else return false
+        end
+    end
+
+    local function aircraftIsSide(typeTableElement, side)
+        if typeTableElement[2] == side or side == nil then return true
+        else return false
+        end
+    end
+
     -- if no argument passed, returns a random aircraft type
     -- iteratively compares argument with elements of table holding aircraft types and returns match
-    local function selectType(type, class)
+    local function selectType(type, class, side)
         BASE:E("selectType")
         if type == nil then
-            return getRandomAircraft(class)
+            return getRandomAircraft(class, side)
         else
             for i = 1, #gAircraftTypeTable do
                 if type == gAircraftTypeTable[i][1] then
@@ -232,11 +256,11 @@
         end
     end
 
-    local function buildTypeOfClassTable(class)
+    local function buildTypeOfClassSideTable(class, side)
         local tableSize = 1
         local tempTypeTable = {}
         for i = 1, #gAircraftTypeTable do
-            if gAircraftTypeTable[i][2] == class then
+            if aircraftIsClass(gAircraftTypeTable[i], class) and aircraftIsSide(gAircraftTypeTable[i], side) then
                 tempTypeTable[tableSize] = gAircraftTypeTable[i][1]
                 tableSize = tableSize + 1
                 MESSAGE:New(tostring(tableSize)):ToAll()
@@ -304,8 +328,8 @@
         end
     end
 
---- menu helper functions
-------- Debugging of removeAll required
+    --- menu helper functions
+    ------- Debugging of removeAll required
     function deleteGroupMenu(index)
         --MESSAGE:New("inside deleteGroupMenu"):ToAll()
         for i = 1, #gGroupMenuTable do
@@ -427,6 +451,16 @@
 
     end
 
+    -- creates trigger zones around lead unit in group
+    local function setBogeyTriggerZones(bogeyGroup)
+        local leadUnit = bogeyGroup:GetFirstUnit()
+        local zoneTable = {}
+        zoneTable[1] = ZONE_UNIT:New("close in zone", leadUnit, ftToMetres(90)) -- creates a zone of r = 90' around lead unit in group
+        zoneTable[2] = ZONE_UNIT:New("close escort zone", leadUnit, ftToMetres(120)) -- creates zone r = 120' around unit
+        zoneTable[3] = ZONE_UNIT:New("too far zone", leadUnit, ftToMetres(250))
+        return zoneTable
+    end
+
     -- spawns group with characteristics set by arguments gathered from multi-layered menu
     -- altitude is passed in as a string, then passed to setAltitude function which determines a random value within bands defined in gAltTable
     -- if the new group is desired to be spawned on a heading toward another unit or static, the location of that object is passed
@@ -446,6 +480,7 @@
         --gGroupMenuTable[gSpawnedCounter]:HandleEvent(EVENTS.Dead)
         gSpawnedCounter = gSpawnedCounter + 1
         --BASE:E(gSpawnedTable[gSpawnedCounter]:GetPositionVec3())
+        return gSpawnedTable[gSpawnedCounter - 1]
     end
 
     -- spawns first group in a presentation (via spawnGroup()) and iteratively spawns remaining groups in presentation
@@ -555,45 +590,35 @@
 --- Built upon basic Air Intercept Trainer
 --- under investigation: speech recognition to enable some degree of radio comm with intruders
 
-    local function interceptTrainerHelper(bomberType)
+    local function fleetDefenceTrainerHelper(bomberType)
         spawnLocation = selectLocationInZone(getRandomSpawnZone())
-        return spawnGroup(spawnLocation, bearingTo(spawnLocation, getRooseveltLocation()), bomberType, "Medium", nil, getRooseveltLocation())
+        setBogeyTriggerZones(spawnGroup(spawnLocation, bearingTo(spawnLocation, getRooseveltLocation()), bomberType, "Medium", nil, getRooseveltLocation()))
     end
 
-    local function buildBomberSelectMenu()
+    local function buildBomberSelectMenu(side)
         tempInterceptMenu = {}
-        for i = 1, #gAircraftTypeTable do
-            if gAircraftTypeTable[i][2] == "bomber" then
-                tempInterceptMenu[i] = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Spawn " .. gAircraftTypeTable[i][1] .. "...",
-                        interceptTrainerMenu, interceptTrainerHelper, gAircraftTypeTable[i][1])
-            end
+        tempTypeTable = buildTypeOfClassSideTable("bomber", "blue")
+        for i = 1, #tempTypeTable do
+            tempInterceptMenu[i] = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Spawn " .. tempTypeTable[i] .. "...",
+                    fleetDefenderTrainerMenu, fleetDefenceTrainerHelper, tempTypeTable[i])
         end
         tempInterceptMenu[#tempInterceptMenu + 1] = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Spawn Random Type...",
-                interceptTrainerMenu, interceptTrainerHelper, selectType(nil, "bomber"))
+                fleetDefenderTrainerMenu, fleetDefenceTrainerHelper, selectType(nil, "bomber", "blue"))
         return tempInterceptMenu
     end
 
-    local function buildInterceptTrainerMenu()
-        interceptTrainerMenu = MENU_COALITION:New(coalition.side.BLUE, "Intercept Trainer")
+    local function fleetDefenceTrainerMenu()
+        fleetDefenderTrainerMenu = MENU_COALITION:New(coalition.side.BLUE, "Fleet Defence Trainer")
         buildBomberSelectMenu()
     end
 
-    local function interceptTrainer()
-        buildInterceptTrainerMenu()
+    local function fleetDefenceTrainer()
+        fleetDefenceTrainerMenu()
     end
 
     ---functions to modify group behaviour
-    local function bogeyTriggerZones(bogeyGroup)
-        local leadUnit = bogeyGroup:GetFirstUnit()
-        local zoneTable = {}
-        zoneTable[1] = ZONE_UNIT:New("close in zone", leadUnit, ftToMetres(90)) -- creates a zone of r = 90' around lead unit in group
-        zoneTable[2] = ZONE_UNIT:New("close escort zone", leadUnit, ftToMetres(120)) -- creates zone r = 120' around unit
-        zoneTable[3] = ZONE_UNIT:New("too far zone", leadUnit, ftToMetres(250))
-        return zoneTable
-    end
-
     local function bogeyCourseChange(fighterGroup, bogeyGroup)
-        local bogeyEscortZones = bogeyTriggerZones()
+        local bogeyEscortZones = setBogeyTriggerZones()
         -- if bomber has detected fighter radar, randomly determine change of course up to 60 degrees
         -- start timer of randomly determined duration which will return bomberGroup to heading to original waypoint
         -- after return to heading for original waypoint, timer starts for a further course change if fighter radar is still detected
@@ -624,7 +649,7 @@
         airToAirRangeTypeMenu = {}
         airToAirRangeFlightSizeMenu = {}
         airToAirRangeAltMenu = {}
-        local typeTable = buildTypeOfClassTable("fighter")
+        local typeTable = buildTypeOfClassSideTable("fighter")
         for i = 1, #typeTable do
             airToAirRangeTypeMenu[i] = MENU_COALITION:New(coalition.side.BLUE, typeTable[i], airToAirRangeTopMenu)
             for j = 1, 4 do
@@ -645,7 +670,7 @@
     function main()
         initSpawnZones()
         buildPresentationMenu()
-        interceptTrainer()
+        fleetDefenceTrainer()
         airToAirRange()
         return 0
     end
