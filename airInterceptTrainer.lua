@@ -193,7 +193,7 @@
         if groupSize ~= nil then
             return groupSize
         else
-            return (math.random(1, 4))
+            return (math.random(1, 2))
         end
     end
 
@@ -265,7 +265,7 @@
             if aircraftIsClass(gAircraftTypeTable[i], class) and aircraftIsSide(gAircraftTypeTable[i], side) then
                 tempTypeTable[tableSize] = gAircraftTypeTable[i][1]
                 tableSize = tableSize + 1
-                MESSAGE:New(tostring(tableSize)):ToAll()
+                --MESSAGE:New(tostring(tableSize)):ToAll()
             end
         end
         return tempTypeTable
@@ -444,7 +444,7 @@
     -- if isGroupAlive returns nil, calls deleteGroupMenu for destroyed group
     local function groupDestroyedHelper(groupIndex, timer)
         if isGroupAlive(groupIndex) == nil then
-            MESSAGE:New(tostring(groupIndex)):ToAll()
+            --MESSAGE:New(tostring(groupIndex)):ToAll()
             deleteGroupMenu(groupIndex)
             --timer:Stop()
         end
@@ -575,7 +575,8 @@
 
 
     ---functions to modify group behaviour
-    local function bogeyCourseChange(fighterGroup, bogeyGroup)
+    local function bogeyCourseChange(bogeyGroup)
+
         --local bogeyEscortZones = setBogeyTriggerZones()
         -- if bomber has detected fighter radar, randomly determine change of course up to 60 degrees
         -- start timer of randomly determined duration which will return bomberGroup to heading to original waypoint
@@ -606,11 +607,13 @@
 
     -- creates trigger zones around lead unit in group
     local function setBogeyTriggerZones(bogeyGroup)
-        local leadUnit = bogeyGroup:GetFirstUnit()
+        --local leadUnit = bogeyGroup[1]:GetFirstUnit()
+        --MESSAGE:New(tostring(leadUnit:GetFuel())):ToAll()
         local zoneTable = {}
-        zoneTable[1] = ZONE_UNIT:New("close in zone", leadUnit, ftToMetres(90)) -- creates a zone of r = 90' around lead unit in group
-        zoneTable[2] = ZONE_UNIT:New("close escort zone", leadUnit, ftToMetres(120)) -- creates zone r = 120' around unit
-        zoneTable[3] = ZONE_UNIT:New("too far zone", leadUnit, ftToMetres(250))
+        zoneTable[1] = ZONE_GROUP:New("close in zone", bogeyGroup[1], ftToMetres(90)) -- creates a zone of r = 90' around lead unit in group
+        zoneTable[2] = ZONE_GROUP:New("close escort zone", bogeyGroup[1], ftToMetres(120)) -- creates zone r = 120' around unit
+        zoneTable[3] = ZONE_GROUP:New("too far zone", bogeyGroup[1], ftToMetres(250))
+        --zoneTable[3]:DrawZone(-1, {1, 0, 0}, 1, {1, 0, 0}, 0.15, 1, true)
         return zoneTable
     end
 
@@ -623,7 +626,7 @@
     local function buildBomberSelectMenu(side)
         tempInterceptMenu = {}
         tempTypeTable = buildTypeOfClassSideTable("bomber", "blue")
-        MESSAGE:New(tostring(#tempTypeTable)):ToAll()
+        --MESSAGE:New(tostring(#tempTypeTable)):ToAll()
         for i = 1, #tempTypeTable do
             tempInterceptMenu[i] = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Spawn " .. tempTypeTable[i] .. "...",
                     fleetDefenderTrainerMenu, fleetDefenceTrainerHelper, tempTypeTable[i])
@@ -635,7 +638,8 @@
 
     local function fleetDefenceTrainerMenu()
         fleetDefenderTrainerMenu = MENU_COALITION:New(coalition.side.BLUE, "Fleet Defence Trainer")
-        buildBomberSelectMenu()
+        fleetDefenceMenuTimer = TIMER:New(buildBomberSelectMenu):Start(5, 15)
+        fleetDefenceRefreshTimer = TIMER:New(fleetDefenderTrainerMenu:Refresh()):Start(5, 15)
     end
 
     local function fleetDefenceTrainer()

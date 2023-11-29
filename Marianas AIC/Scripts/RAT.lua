@@ -6,7 +6,8 @@
 --- table containing the arguments to initialise one RAT in each element
 --- gTrafficDataTable[1] = template name, [2] = departure list, [3] = destination list, [4] = commute [5] = starshape [6] = SpawnDelay, [7] = RespawnDelay, [8] = SpawnInterval
 --- probably should be moved to an external file to clean up script
-    gComAirDataTable = {{"COM NWA747", {"COMAIR Northeast", "COMAIR East", "COMAIR ENE", "COMAIR NNE"}, {"Antonio B. Won Pat Intl", "Saipan Intl"}, true, true, 300, 1800, 1200},
+
+    gComAirDataTable = {--[[]{"COM NWA747", {"COMAIR Northeast", "COMAIR East", "COMAIR ENE", "COMAIR NNE"}, {"Antonio B. Won Pat Intl", "Saipan Intl"}, true, true, 300, 1800, 1200},--]]
                          {"COM AFR727", {"Antonio B. Won Pat Intl"}, {"COMAIR Northeast", "COMAIR East", "COMAIR ENE", "COMAIR NNE"}, true, true, 150, 900, 600},
                         {"COM PHL737", {"COMAIR Southwest"}, {"Antonio B. Won Pat Intl"}, true, true, 15, 600, 600},
                         {"COM AIN747", {"Antonio B. Won Pat Intl"}, {"COMAIR Northwest", "COMAIR NNNW", "COMAIR NW2"}, true, true, 60, 500, 1800},
@@ -58,9 +59,9 @@
     end
 
     -- placeholder for alternative implementation using RAT:Spawn rather than RATMANAGER
-    local function initTiming(foo)
+    --[[local function initTiming(foo)
         return bar
-    end
+    end--]]
 
     -- returns table containing instances of RAT initialised with helper functions using table of data passed in
     -- RAT instances are instantiated and initialised iteratively
@@ -72,6 +73,8 @@
             initDepartures(tempRat, ratData[i][2])
             initDestinations(tempRat, ratData[i][3])
             initCommute(tempRat, ratData[i][4], ratData[i][5])
+            --ratData[i][1].radio = false
+            --MESSAGE:New(tostring(i)):ToAll()
             tempRatTable[i] = tempRat
         end
         return tempRatTable
@@ -80,27 +83,31 @@
     -- adds instances of RAT from table argument to passed RATMANAGER
     local function initRatManager(ratManager, ratTable)
         for i = 1, #ratTable do
-            return ratManager:Add(ratTable[i], 1)
+            MESSAGE:New(tostring(i)):ToAll()
+            ratManager:Add(ratTable[i], 1)
         end
     end
 
     -- instantiates new RATMANAGER and calls initRatManager to populate with instances of RAT from table argument
     local function newRatManager(ratDataTable, numAircraft)
-        local tempRatTable = buildRatTable(ratDataTable)
+        --local tempRatTable = buildRatTable(ratDataTable)
         local tempRatManager = RATMANAGER:New(numAircraft)
-        initRatManager(tempRatManager, tempRatTable)
+        --initRatManager(tempRatManager, tempRatTable)
+        initRatManager(tempRatManager, ratDataTable)
         return tempRatManager
     end
 
     function main()
-        comAirRatManager = newRatManager(gComAirDataTable, 25)
-        navAirRatManager = newRatManager(gNavAirDataTable, 2)
-        milAirRatManager = newRatManager(gMilAirDataTable, 4)
+        comAirTrafficTable = buildRatTable(gComAirDataTable)
+        --comAirRatManager = newRatManager(gComAirDataTable, 25)
+        comAirRatManager = newRatManager(comAirTrafficTable, 25)
+        --navAirRatManager = newRatManager(gNavAirDataTable, 2)
+        --milAirRatManager = newRatManager(gMilAirDataTable, 4)
         comAirRatManager:SetTspawn(120)
         comAirRatManager:Start()
-        navAirRatManager:Start()
-        milAirRatManager:SetTspawn(60)
-        milAirRatManager:Start()
+        --navAirRatManager:Start()
+        --milAirRatManager:SetTspawn(60)
+        --milAirRatManager:Start()
         return 0
     end
 
