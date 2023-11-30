@@ -141,6 +141,7 @@
 	ninetyMinuteWindow = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Initiate 90 Minute Recovery Window", recoveryWindowMenu, beginRecoveryHelper, 5400)
 
 	function main()
+		AirbossRoosevelt.SetTrapSheet()
 		return 0
 	end
 
