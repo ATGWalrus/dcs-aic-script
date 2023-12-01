@@ -1,0 +1,3 @@
+---
+--- manages tankers (other than recovery tankers)
+--- if a tanker is nearing depletion, relief will be launched - i.e. duration for which there is no tanker on station will be minimal
