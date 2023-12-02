@@ -49,7 +49,7 @@
 	AirbossRoosevelt:SetMenuSingleCarrier()
 
 	-- Skipper menu.
-	--AirbossRoosevelt:SetMenuRecovery(90, 25, false, 0)
+	AirbossRoosevelt:SetMenuRecovery(90, 25, false, 0)
 
 	-- Remove landed AI planes from flight deck.
 	AirbossRoosevelt:SetDespawnOnEngineShutdown()
