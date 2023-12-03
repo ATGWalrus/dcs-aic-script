@@ -173,6 +173,7 @@
     gAltMenuTable = {}
     gBearingMenuItems = {}
     gGroupMenuTable = {} -- will contain menu instances to control all alive groups
+    local lInterceptTriggerZoneTable = {}
 
     --- further helper functions requiring access to global variables
     -- generates spawn zones from parameters defined in each element of gSpawnZoneTable
@@ -607,14 +608,11 @@
 
     -- creates trigger zones around lead unit in group
     local function setBogeyTriggerZones(bogeyGroup)
-        --local leadUnit = bogeyGroup[1]:GetFirstUnit()
-        --MESSAGE:New(tostring(leadUnit:GetFuel())):ToAll()
-        local zoneTable = {}
-        zoneTable[1] = ZONE_GROUP:New("close in zone", bogeyGroup[1], ftToMetres(90)) -- creates a zone of r = 90' around lead unit in group
-        zoneTable[2] = ZONE_GROUP:New("close escort zone", bogeyGroup[1], ftToMetres(120)) -- creates zone r = 120' around unit
-        zoneTable[3] = ZONE_GROUP:New("too far zone", bogeyGroup[1], ftToMetres(250))
-        --zoneTable[3]:DrawZone(-1, {1, 0, 0}, 1, {1, 0, 0}, 0.15, 1, true)
-        return zoneTable
+        local closeZone = ZONE_GROUP:New("close in zone", bogeyGroup[1], ftToMetres(90)) -- creates a zone of r = 90' around lead unit in group
+        local escortZone = ZONE_GROUP:New("close escort zone", bogeyGroup[1], ftToMetres(120)) -- creates zone r = 120' around unit
+        local farZone = ZONE_GROUP:New("too far zone", bogeyGroup[1], ftToMetres(250))
+        local zoneTable = {closeZone, escortZone, farZone}
+        lInterceptTriggerZoneTable[#lInterceptTriggerZoneTable + 1] = zoneTable
     end
 
     local function fleetDefenceTrainerHelper(bomberType)
