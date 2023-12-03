@@ -2,7 +2,7 @@
 ---
 --- Generates a simple SINKEX for ASuW practice
 
-    gShipTable = {"SINKEX Large", "SINKEX Medium"}
+    gShipTable = {"SINKEX Large", "SINKEX Medium", "Soviet Frigate", "Soviet Corvette"}
     gSINKEXZone = ZONE:FindByName("SINKEX Zone")
     local lSpawnMenuTable = {}  -- stores instances of MENU calling function to spawn a GROUP
     local DeleteMenuTable = {}  -- stores instances of MENU calling function to delete a GROUP
