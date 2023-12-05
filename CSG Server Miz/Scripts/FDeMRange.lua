@@ -13,3 +13,4 @@
     RangeFDM:SetRangeControl(260)
     RangeFDM:SetInstructorRadio(270)
     RangeFDM:Start()
+    MESSAGE:New("Faralon Range Script Loaded"):ToAll()

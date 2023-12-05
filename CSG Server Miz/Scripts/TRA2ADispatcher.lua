@@ -28,3 +28,10 @@ A2ADispatcherRoosevelt:SetSquadronGci("VF-51", 1100, 1800)
 
  -- Start Dispatcher
 A2ADispatcherRoosevelt:Start()
+
+    function main()
+        A2ADispatcherRoosevelt:Start()
+        MESSAGE:New("Air to Air Dispatcher Loaded"):ToAll()
+    end
+
+    main()

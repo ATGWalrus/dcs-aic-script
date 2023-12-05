@@ -103,6 +103,7 @@
         navAirRatManager:Start()
         milAirRatManager:SetTspawn(60)
         milAirRatManager:Start()
+        MESSAGE:New("RAT Loaded"):ToAll()
         return 0
     end
 

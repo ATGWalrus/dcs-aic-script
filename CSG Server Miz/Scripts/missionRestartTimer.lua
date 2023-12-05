@@ -1,5 +1,5 @@
 --- Displays messages warning server will restart
-
+--- currently unused
     local missionStarted = TIMER:New(MESSAGE:New("Mission Initialised"):ToAll()):Start(65)
     local countdownThirty = TIMER:New(MESSAGE:New("30 minutes until server restart"):ToAll()):Start(19800)
     local countdownFifteen = TIMER:New(MESSAGE:New("15 minutes until server restart"):ToAll()):Start(20700)

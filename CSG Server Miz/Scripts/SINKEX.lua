@@ -60,6 +60,7 @@
 
     function main()
         buildSINKEXspawnMenu(gShipTable, gSINKEXZone, DeleteMenuTable)
+        MESSAGE:New("SINKEX Script Loaded"):ToAll()
         return 0
     end
 

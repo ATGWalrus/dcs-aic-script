@@ -47,9 +47,21 @@
         end
     end
 
-    -- generates a random bearing from 001 to 360
-    local function randomBearing()
-        return math.random(1, 360)
+    -- generates a random bearing from 001 to 360 or if arguments are passed, a random heading within that range
+    local function randomBearing(min, max)
+        if min ~= nil and max ~= nil then
+            return math.random(min, max)
+        else
+            return math.random(1, 360)
+        end
+    end
+
+    local function getTargetAspect(fighterHeading, bearing)
+        if math.random(0, 1) == 1 then
+            return fighterHeading - 180 + bearing
+        else
+            return fighterHeading - 180 - bearing
+        end
     end
 
     -- returns range randomly from either optional min/max arguments or globals if no values are passed
@@ -121,7 +133,7 @@
     gCentre = POINT_VEC2:New(36199, 268314) -- centre from which spawn locations will be derived. Defined arbitrarily and does not couple script to a particular map. Current value corresponds roughly to centre of the Syria map
     gRoosevelt = UNIT:FindByName("USS Theodore Roosevelt")
     gRooseveltZone = ZONE_UNIT:New("Roosevelt Zone", gRoosevelt, nmToMetres(5))
-    gClientSet = SET_CLIENT:New():FilterCoalitions("blue"):FilterActive():FilterStart()
+    local lClientSet = SET_CLIENT:New():FilterCoalitions("blue"):FilterActive():FilterStart()
     BASE:E("below gCentre")
     gBomberSpawn = ZONE:FindByName("BomberSpawn")
     gGroupSize = {1, 2}
@@ -130,6 +142,7 @@
     gMaxAltitude = ftToMetres(32000) -- max altitude at which a group can be spawned
     gMinAltitude = ftToMetres(25000) -- min altitude ditto above
     gSpawnedCounter = 1 -- used to set index for new instances of GROUP in gPresentationTypeTable
+    lAirToAirMenu = MENU_COALITION:New(coalition.side.BLUE, "Air-to-Air Training")
 
     --- presentation, aircraft and spawned groups tables
     --- each element contains: [1] presentation name [2] number of aircraft, [3] min separation, [4] max separation, [5] table of bearings from lead to trail groups
@@ -163,6 +176,7 @@
                           {"Foxhound", "fighter", "red"}, {"B-52", "bomber", "blue"}, {"B-1", "bomber", "blue"}}
 
     gSpawnHeadingTable = {360, 45, 90, 135, 180, 270, 315}
+    gTargetAspectTable = {{0, 10, "Low"}, {10, 30, "Medium"}, {25, 45, "High"}, {45, 60, "Very High"}, {60, 75, "Good Luck"}}
     gAltTable = {"Low", "Medium", "High"}
     gROETable = {{"WEAPONS FREE", 0}, {"RETURN FIRE", 3}, {"WEAPON HOLD", 4}}
     gROTTable = {{"NO REACTION", 0}, {"PASSIVE DEFENCE", 1}, {"EVADE FIRE", 2}, {"BYPASS AND ESCAPE", 3}, {"ALLOW ABORT MISSION", 4}}
@@ -500,7 +514,7 @@
     --- Build F10 Menu for spawning new presentations
     function buildPresentationMenu()
         menuAIC = MENU_COALITION:New(coalition.side.BLUE, "Manage Groups and Presentations") -- top level menu (under F10)
-        spawnMenu = MENU_COALITION:New(coalition.side.BLUE, "Spawn a New Presentation")
+        spawnMenu = MENU_COALITION:New(coalition.side.BLUE, "AIC Presentations", lAirToAirMenu)
         local menuItemPresentation
         local menuItemType
         local menuItemZone
@@ -637,7 +651,7 @@
     end
 
     local function fleetDefenceTrainerMenu()
-        fleetDefenderTrainerMenu = MENU_COALITION:New(coalition.side.BLUE, "Fleet Defence Trainer")
+        fleetDefenderTrainerMenu = MENU_COALITION:New(coalition.side.BLUE, "Fleet Defence Trainer", lAirToAirMenu)
         fleetDefenceMenuTimer = TIMER:New(buildBomberSelectMenu):Start(5, 15)
         fleetDefenceRefreshTimer = TIMER:New(fleetDefenderTrainerMenu:Refresh()):Start(5, 15)
     end
@@ -646,54 +660,51 @@
         fleetDefenceTrainerMenu()
     end
 
-    --- Intercept Trainer
-    --- Spawns a single aircraft 100nm from client at a set bearing and set TA on which to practice stern conversion intercepts
-    local function interceptTrainerHelper(client, spawnZone, targetHeading)
+--- Intercept Trainer
+--- Spawns a single aircraft 100nm from client's nose at a given TA
+--- helper function calls spawnGroup with arguments initialised in buildInterceptTrainerMenu and interceptTrainerHelper
+    local function interceptTrainerHelper(client, spawnZone, fighterHeading, targetMinAspect, targetMaxAspect, aspectString, group)
         local spawnLocation = selectLocationInZone(spawnZone)
+        local targetHeading = getTargetAspect(fighterHeading, randomRange(targetMinAspect, targetMaxAspect))
         spawnGroup(spawnLocation, targetHeading, "B-52", "medium", 1)
-    end
-
-    local function headingToAspectString(heading)
-        if heading > 0 and heading <180 then
-            return tostring(heading % 180) .. " degrees Right"
-        elseif heading < 360 and heading > 180 then
-            return (heading % 180) .. "degrees Left"
-        elseif heading == 0 or heading == 360 then
-            return "0"
-        elseif heading == 180 then
-            return "180"
-        else
-            return ""
-        end
+        MESSAGE:New("Single Aircraft has been spawned 100 miles from your nose with " .. aspectString .. " TA"):ToGroup(group)
     end
 
     local function buildInterceptTrainerMenu(client)
-        local fighter = client:GetGroup()
-        local playerName = client:GetPlayerName()
-        local targetSpawnZone = ZONE_GROUP:New("Intercept Target Spawn Zone", fighter, nmToMetres(15), {rho = nmToMetres(100), theta = 360, relative_to_unit = true})
-        local interceptTrainerTopMenu = MENU_GROUP:New(fighter, "Intercept Trainer")
-        local clientMenuTable = {}
-        for i = 1, #gSpawnHeadingTable do
-            clientMenuTable[i] = MENU_GROUP_COMMAND:New(Client:GetGroup(), "Spawn Intercept Target with Target Aspect of " .. headingToAspectString(#gSpawnHeadingTable[i]),
-                    interceptTrainerTopMenu, interceptTrainerHelper, client, targetSpawnZone, gSpawnHeadingTable[i])
+        if (client ~= nil) and (client:IsAlive()) then
+            local fighterGroup = client:GetGroup()
+            local fighterUnit = client:GetClientGroupUnit()
+            local playerName = client:GetPlayerName()
+            local targetSpawnZone = ZONE_UNIT:New("Intercept Target Spawn Zone", fighterUnit, nmToMetres(15),
+                    {rho = nmToMetres(100), theta = 0, relative_to_unit = true})
+            local interceptTrainerTopMenu = MENU_GROUP:New(fighterGroup, "Stern Conversion Trainer", lAirToAirMenu)
+            local fighterHeading = fighterGroup:GetHeading()
+            local clientMenuTable = {}
+            for i = 1, #gTargetAspectTable do
+                clientMenuTable[i] = MENU_GROUP_COMMAND:New(fighterGroup,
+                        "Spawn Intercept Target with " .. gTargetAspectTable[i][3] .. " Target Aspect",
+                        interceptTrainerTopMenu, interceptTrainerHelper, client, targetSpawnZone, fighterHeading, gTargetAspectTable[i][1],
+                        gTargetAspectTable[i][2], gTargetAspectTable[3], fighterGroup)
+            end
+            return clientMenuTable
         end
     end
 
     local function interceptTrainer()
-        gClientSet:ForEachClient(buildInterceptTrainerMenu, client)
+        lClientSet:ForEachClient(buildInterceptTrainerMenu, client)
         timer.scheduleFunction(interceptTrainer, {}, timer.getTime() + 1)
     end
 
     --- air to air range
     --- spawns hostile fighters in a specified zone
     --- supports the calling of multiple presentations and multi-aircraft groups
-
+    --- structured as fleetDefenceTrainer and interceptTrainer; buildMenu script creates a menu and passes data to helper function which calls spawnGroup
     local function airToAirRangeHelper(groupType, altitude, groupSize, groupFormation)
         spawnAICPresHelper(gPresentationTypeTable[6], groupType,  ZONE:FindByName("A-A Start Zone"), altitude, 360, groupSize)
     end
 
     local function buildAirToAirRangeMenu()
-        airToAirRangeTopMenu = MENU_COALITION:New(coalition.side.BLUE, "Air to Air Range")
+        airToAirRangeTopMenu = MENU_COALITION:New(coalition.side.BLUE, "Air to Air Range", lAirToAirMenu)
         airToAirRangeTypeMenu = {}
         airToAirRangeFlightSizeMenu = {}
         airToAirRangeAltMenu = {}
@@ -721,6 +732,7 @@
         fleetDefenceTrainer()
         airToAirRange()
         interceptTrainer()
+        MESSAGE:New("Air to Air Training Script Loaded"):ToAll()
         return 0
     end
 
