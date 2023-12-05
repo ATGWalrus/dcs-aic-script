@@ -73,6 +73,7 @@
             initDepartures(tempRat, ratData[i][2])
             initDestinations(tempRat, ratData[i][3])
             initCommute(tempRat, ratData[i][4], ratData[i][5])
+            tempRat:ATC_Messages(false)
             tempRatTable[i] = tempRat
         end
         return tempRatTable

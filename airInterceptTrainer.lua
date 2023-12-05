@@ -121,6 +121,7 @@
     gCentre = POINT_VEC2:New(36199, 268314) -- centre from which spawn locations will be derived. Defined arbitrarily and does not couple script to a particular map. Current value corresponds roughly to centre of the Syria map
     gRoosevelt = UNIT:FindByName("USS Theodore Roosevelt")
     gRooseveltZone = ZONE_UNIT:New("Roosevelt Zone", gRoosevelt, nmToMetres(5))
+    gClientSet = SET_CLIENT:New():FilterCoalitions("blue"):FilterActive():FilterStart()
     BASE:E("below gCentre")
     gBomberSpawn = ZONE:FindByName("BomberSpawn")
     gGroupSize = {1, 2}
@@ -463,9 +464,10 @@
         local newGroup = SPAWN:NewWithAlias(type, "AIC Group " .. type .. " " .. tostring(gSpawnedCounter))
         location:SetY(setAltitude(altitude))
         --MESSAGE:New(tostring(location:GetY())):ToAll()
-        newGroup:InitHeading(heading)
+        --newGroup:InitHeading(heading)
         newGroup:InitGroupHeading(heading)
         newGroup:InitGrouping(setGroupSize(groupSize))
+        newGroup:InitRandomizeUnits(true, 300, 50) -- each unit within GROUP is created at a random location relative to lead
         BASE:E("table not empty")
         gSpawnedTable[gSpawnedCounter] = {newGroup:SpawnFromPointVec3(location), gSpawnedCounter,
                                           TIMER:New(groupDestroyedHelper, gSpawnedCounter):Start(0, 0.5)}
@@ -646,27 +648,41 @@
 
     --- Intercept Trainer
     --- Spawns a single aircraft 100nm from client at a set bearing and set TA on which to practice stern conversion intercepts
-    local function interceptTrainerHelper(Client, spawnZone, targetHeading)
+    local function interceptTrainerHelper(client, spawnZone, targetHeading)
         local spawnLocation = selectLocationInZone(spawnZone)
         spawnGroup(spawnLocation, targetHeading, "B-52", "medium", 1)
     end
 
-    --[[local function interceptTrainer()
-        local Client_SET = SET_CLIENT:New():FilterActive(Active):FilterPrefixes("VF-111"):FilterStart()
-        MESSAGE:New(tostring(#Client_SET)):ToAll()
-        Client_SET:ForEachClient(
-        function(Client)
-            local fighter = Client:GetUnits()
-            local playerName = Client:GetPlayerName()
-            local targetSpawnZone = ZONE_UNIT:New("Intercept Target Spawn Zone", fighter, nmToMetres(15), {rho = nmToMetres(100), theta = 360, relative_to_unit = true})
-            local interceptTrainerTopMenu = MENU_GROUP:New(Grp, "Intercept Trainer")
-            local clientMenuTable = {}
-            for i = 1, #gSpawnHeadingTable do
-                clientMenuTable[i] = MENU_GROUP_COMMAND:New(Client:GetGroup(), "Spawn Intercept Target on heading " .. tostring(#gSpawnHeadingTable[i]),
-                        interceptTrainerTopMenu, Client, targetSpawnZone, interceptTrainerHelper, Client, targetSpawnZone, gSpawnHeadingTable[i])
-            end
-        end)
-    end--]]
+    local function headingToAspectString(heading)
+        if heading > 0 and heading <180 then
+            return tostring(heading % 180) .. " degrees Right"
+        elseif heading < 360 and heading > 180 then
+            return (heading % 180) .. "degrees Left"
+        elseif heading == 0 or heading == 360 then
+            return "0"
+        elseif heading == 180 then
+            return "180"
+        else
+            return ""
+        end
+    end
+
+    local function buildInterceptTrainerMenu(client)
+        local fighter = client:GetGroup()
+        local playerName = client:GetPlayerName()
+        local targetSpawnZone = ZONE_GROUP:New("Intercept Target Spawn Zone", fighter, nmToMetres(15), {rho = nmToMetres(100), theta = 360, relative_to_unit = true})
+        local interceptTrainerTopMenu = MENU_GROUP:New(fighter, "Intercept Trainer")
+        local clientMenuTable = {}
+        for i = 1, #gSpawnHeadingTable do
+            clientMenuTable[i] = MENU_GROUP_COMMAND:New(Client:GetGroup(), "Spawn Intercept Target with Target Aspect of " .. headingToAspectString(#gSpawnHeadingTable[i]),
+                    interceptTrainerTopMenu, interceptTrainerHelper, client, targetSpawnZone, gSpawnHeadingTable[i])
+        end
+    end
+
+    local function interceptTrainer()
+        gClientSet:ForEachClient(buildInterceptTrainerMenu, client)
+        timer.scheduleFunction(interceptTrainer, {}, timer.getTime() + 1)
+    end
 
     --- air to air range
     --- spawns hostile fighters in a specified zone
@@ -704,7 +720,7 @@
         buildPresentationMenu()
         fleetDefenceTrainer()
         airToAirRange()
-        --interceptTrainer()
+        interceptTrainer()
         return 0
     end
 

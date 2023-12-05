@@ -129,16 +129,18 @@
 		return spawnInst:SPAWN()
 	end
 
+	local function setCarrierLights()
 
+	end
 
 	-- Menu for on-demand recovery windows
-	recoveryWindowMenu = MENU_COALITION:New(coalition.side.BLUE, "Recovery Window")	-- top level menu (under F10)
-	closeRecoveryWindow = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Close Current Recovery Window", recoveryWindowMenu, endRecovery, 10)
-	fifteenMinuteWindow = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Initiate 15 Minute Recovery Window", recoveryWindowMenu, beginRecoveryHelper, 900)
-	thirtyMinuteWindow = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Initiate 30 Minute Recovery Window", recoveryWindowMenu, beginRecoveryHelper, 1800)
-	fortyfiveMinuteWindow = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Initiate 45 Minute Recovery Window", recoveryWindowMenu, beginRecoveryHelper, 2700)
-	sixtyMinuteWindow = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Initiate 60 Minute Recovery Window", recoveryWindowMenu, beginRecoveryHelper, 3600)
-	ninetyMinuteWindow = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Initiate 90 Minute Recovery Window", recoveryWindowMenu, beginRecoveryHelper, 5400)
+	--recoveryWindowMenu = MENU_COALITION:New(coalition.side.BLUE, "Recovery Window")	-- top level menu (under F10)
+	--closeRecoveryWindow = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Close Current Recovery Window", recoveryWindowMenu, endRecovery, 10)
+	--fifteenMinuteWindow = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Initiate 15 Minute Recovery Window", recoveryWindowMenu, beginRecoveryHelper, 900)
+	--thirtyMinuteWindow = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Initiate 30 Minute Recovery Window", recoveryWindowMenu, beginRecoveryHelper, 1800)
+	--fortyfiveMinuteWindow = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Initiate 45 Minute Recovery Window", recoveryWindowMenu, beginRecoveryHelper, 2700)
+	--sixtyMinuteWindow = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Initiate 60 Minute Recovery Window", recoveryWindowMenu, beginRecoveryHelper, 3600)
+	--ninetyMinuteWindow = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Initiate 90 Minute Recovery Window", recoveryWindowMenu, beginRecoveryHelper, 5400)
 
 	function main()
 		AirbossRoosevelt.SetTrapSheet()
