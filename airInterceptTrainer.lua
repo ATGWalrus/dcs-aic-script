@@ -58,9 +58,9 @@
 
     local function getTargetAspect(fighterHeading, bearing)
         if math.random(0, 1) == 1 then
-            return fighterHeading - 180 + bearing
+            return (fighterHeading - 180 + bearing) % 360
         else
-            return fighterHeading - 180 - bearing
+            return (fighterHeading - 180 - bearing) % 360
         end
     end
 
@@ -176,7 +176,7 @@
                           {"Foxhound", "fighter", "red"}, {"B-52", "bomber", "blue"}, {"B-1", "bomber", "blue"}}
 
     gSpawnHeadingTable = {360, 45, 90, 135, 180, 270, 315}
-    gTargetAspectTable = {{0, 10, "Low"}, {10, 30, "Medium"}, {25, 45, "High"}, {45, 60, "Very High"}, {60, 75, "Good Luck"}}
+    gTargetAspectTable = {{0, 10, "Low"}, {10, 25, "Medium"}, {25, 45, "Medium-High"}, {45, 60, "High"}, {60, 75, "Very High"}}
     gAltTable = {"Low", "Medium", "High"}
     gROETable = {{"WEAPONS FREE", 0}, {"RETURN FIRE", 3}, {"WEAPON HOLD", 4}}
     gROTTable = {{"NO REACTION", 0}, {"PASSIVE DEFENCE", 1}, {"EVADE FIRE", 2}, {"BYPASS AND ESCAPE", 3}, {"ALLOW ABORT MISSION", 4}}
