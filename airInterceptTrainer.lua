@@ -362,17 +362,10 @@
         --MESSAGE:New("deleteGroupMenu end of block"):ToAll()
     end
 
-    -- iteratively deletes all spawned groups and associated menus
+    -- iteratively calls deleteSingleGroup all spawned groups and associated menus
     function removeAll()
         for i = 1, #gSpawnedTable do
-            local tempIndex = gSpawnedTable[i][2]
-            if gSpawnedTable[i][1] ~= nil then
-                gSpawnedTable[i][1]:Destroy(false, 1)
-                groupOptionsMenu:Refresh()
-            end
-            if gGroupMenuTable[i][1] ~= nil then
-                deleteGroupMenu(i)
-            end
+            deleteSingleGroup(i)
         end
     end
 
@@ -381,14 +374,12 @@
     -- calls GROUP type's Destroy function to delete instance if found
     function deleteSingleGroup(index)
         for i = 1, #gSpawnedTable do
-            if gSpawnedTable[i][2] == index then
+            if gSpawnedTable[i][2] == index and gSpawnedTable[i][4] == false then
                 gSpawnedTable[i][1]:Destroy(false, 1)
+                gSpawnedTable[i][4] = true
             end
         end
-        if gGroupMenuTable[index][1] ~= nil then
-            --deleteGroupMenu(index)
-        end
-        collectgarbage()
+        --collectgarbage()
     end
 
     local function isGroup(lGroup)
@@ -479,12 +470,12 @@
         location:SetY(setAltitude(altitude))
         --MESSAGE:New(tostring(location:GetY())):ToAll()
         --newGroup:InitHeading(heading)
-        newGroup:InitGroupHeading(heading)
+        --newGroup:InitGroupHeading(heading)
         newGroup:InitGrouping(setGroupSize(groupSize))
         newGroup:InitRandomizeUnits(true, 300, 50) -- each unit within GROUP is created at a random location relative to lead
-        BASE:E("table not empty")
+        --BASE:E("table not empty")
         gSpawnedTable[gSpawnedCounter] = {newGroup:SpawnFromPointVec3(location), gSpawnedCounter,
-                                          TIMER:New(groupDestroyedHelper, gSpawnedCounter):Start(0, 0.5)}
+                                          TIMER:New(groupDestroyedHelper, gSpawnedCounter):Start(0, 0.25), false}
         gGroupMenuTable[gSpawnedCounter] = buildGroupMenu(gSpawnedTable[gSpawnedCounter][1]), setWaypointHelper(gSpawnedTable[gSpawnedCounter][1],
                 heading, location, waypointUnitLocation, altitude)
         --gGroupMenuTable[gSpawnedCounter]:HandleEvent(EVENTS.Dead)
@@ -543,7 +534,7 @@
             end
         end
         --deleteMenu = MENU_COALITION:New(coalition.side.BLUE, "Delete Groups...", menuAIC) -- temporarily disabled
-        --deleteAllMenu = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Delete All Groups", deleteMenu, removeAll) -- temporarily disabled due to bug resulting in called fn not working under some circumstances
+        deleteAllMenu = MENU_COALITION_COMMAND:New(coalition.side.BLUE, "Delete All Groups", menuAIC, removeAll)
         deleteSingleMenu = MENU_COALITION:New(coalition.side.BLUE, "Delete a Group...", menuAIC) -- parent menu temporarily set as AIC top menu vice deleteMenu
         groupOptionsMenu = MENU_COALITION:New(coalition.side.BLUE, "Set Group Options...", menuAIC)
     end
