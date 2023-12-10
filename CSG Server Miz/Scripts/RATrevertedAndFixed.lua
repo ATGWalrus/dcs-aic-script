@@ -96,7 +96,7 @@
 
     function main()
         comAirRatManager = newRatManager(gComAirDataTable, 25)
-        navAirRatManager = newRatManager(gNavAirDataTable, 2)
+        navAirRatManager = newRatManager(gNavAirDataTable, 1)
         milAirRatManager = newRatManager(gMilAirDataTable, 4)
         comAirRatManager:SetTspawn(120)
         comAirRatManager:Start()
