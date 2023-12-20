@@ -12,6 +12,7 @@
 --- C. Wild (Walrus) 2023
 ---
 
+    require("mapAdmin")
     -- Vec3 function coalition.getMainRefPoint(enum coalition.side coalition) function call returning bullseye as a Vec3
 
     --BASE:TraceOnOff(true)
@@ -133,7 +134,7 @@
     gCentre = POINT_VEC2:New(36199, 268314) -- centre from which spawn locations will be derived. Defined arbitrarily and does not couple script to a particular map. Current value corresponds roughly to centre of the Syria map
     gRoosevelt = UNIT:FindByName("USS Theodore Roosevelt")
     gRooseveltZone = ZONE_UNIT:New("Roosevelt Zone", gRoosevelt, nmToMetres(5))
-    local lClientSet = SET_CLIENT:New():FilterCoalitions("blue"):FilterActive():FilterStart()
+    --local lClientSet = SET_CLIENT:New():FilterCoalitions("blue"):FilterActive():FilterStart()
     BASE:E("below gCentre")
     gBomberSpawn = ZONE:FindByName("BomberSpawn")
     gGroupSize = {1, 2}
@@ -682,7 +683,7 @@
     end
 
     local function interceptTrainer()
-        lClientSet:ForEachClient(buildInterceptTrainerMenu, client)
+        gClientSet:ForEachClient(buildInterceptTrainerMenu, client)
         timer.scheduleFunction(interceptTrainer, {}, timer.getTime() + 1)
     end
 

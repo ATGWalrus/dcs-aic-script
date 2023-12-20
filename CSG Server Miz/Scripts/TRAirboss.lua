@@ -25,6 +25,7 @@
 	tankerHigh:SetRadio(367.575)
 	tankerHigh:SetModex(703)
 	tankerHigh:SetTACAN(101,"TR")
+	tankerHigh:SetAltitude(11000)
 	tankerHigh:__Start(1)
 
 	-- E-2D AWACS spawning on Roosevelt.

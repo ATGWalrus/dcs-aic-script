@@ -11,7 +11,7 @@
 
     local lCVNlightSettings = {{"CVN Lights Off", 750}, {"CVN Lights Auto", 751}, {"CVN Lights Navigation", 752}, {"CVN Lights Launch", 753}, {"CVN Lights Recovery", 754}}
     local lMissionRestartFlags = {{"Load Daytime Mission", 600}, {"Load Nighttime Mission", 601}, {"Load Dawn Mission", 602}, {"Load Dusk Mission", 603}}
-    local lClientSet = SET_CLIENT:New():FilterCoalitions("blue"):FilterActive():FilterStart()
+    gClientSet = SET_CLIENT:New():FilterCoalitions("blue"):FilterActive():FilterStart()
     BASE:E("lClientSet generated")
 
     -- sets a flag to be true (1) or false (0)
@@ -60,7 +60,7 @@
     -- once initialised, function calls itself once per second for the duration of the mission
     -- iterates through list of clients, calling buildMenuHelper for each
     local function buildClientMenu()
-        lClientSet:ForEachClient(buildMenuHelper, client)
+        gClientSet:ForEachClient(buildMenuHelper, client)
         timer.scheduleFunction(buildClientMenu, {}, timer.getTime() + 1)
     end
 
