@@ -51,7 +51,7 @@
     function main()
         timer.scheduleFunction(loadSource, {}, timer.getTime() + 0.5)
         timer.scheduleFunction(loadDMLmodules, {}, timer.getTime() + 5)
-        timer.scheduleFunction(loadMapAdmin, {}, timer.getTime() + 10)
+        --timer.scheduleFunction(loadMapAdmin, {}, timer.getTime() + 10)
         timer.scheduleFunction(loadAirboss, {}, timer.getTime() + 15)
         --timer.scheduleFunction(loadAtoAdispatcher, {}, timer.getTime() + 20) -- causing issues on deck with launch and recovery of tankers and COD
         timer.scheduleFunction(loadFaralonRange, {}, timer.getTime() + 20)

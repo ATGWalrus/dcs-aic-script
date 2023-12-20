@@ -12,7 +12,6 @@
 --- C. Wild (Walrus) 2023
 ---
 
-    require("mapAdmin")
     -- Vec3 function coalition.getMainRefPoint(enum coalition.side coalition) function call returning bullseye as a Vec3
 
     --BASE:TraceOnOff(true)
@@ -189,6 +188,10 @@
     gAltMenuTable = {}
     gBearingMenuItems = {}
     gGroupMenuTable = {} -- will contain menu instances to control all alive groups
+    local lCVNlightSettings = {{"CVN Lights Off", 750}, {"CVN Lights Auto", 751}, {"CVN Lights Navigation", 752}, {"CVN Lights Launch", 753}, {"CVN Lights Recovery", 754}}
+    local lMissionRestartFlags = {{"Load Daytime Mission", 600}, {"Load Nighttime Mission", 601}, {"Load Dawn Mission", 602}, {"Load Dusk Mission", 603}}
+    gClientSet = SET_CLIENT:New():FilterCoalitions("blue"):FilterActive():FilterStart()
+    BASE:E("lClientSet generated")
     local lInterceptTriggerZoneTable = {}
 
     --- further helper functions requiring access to global variables
@@ -718,12 +721,64 @@
         buildAirToAirRangeMenu()
     end
 
+    -- sets a flag to be true (1) or false (0)
+    local function setFlag(flag, boolVal)
+        trigger.action.setUserFlag(flag, boolVal)
+        BASE:E("setFlag function")
+    end
+
+    -- helper function for setFlag, matches flag passed as second argument with an element of the table passed as first
+    local function setMissionFlag(flagTable, flag)
+        for i = 1, #flagTable do
+            if flag == flagTable[i][2] then
+                setFlag(flag, 1)
+            else
+                setFlag(flagTable[i][2], 0)
+            end
+        end
+    end
+
+    -- adds menus for client groups. These are built from tables of the format defined above
+    local function buildMissionMenu(flagTable, group, parentMenu)
+        local tempMenu = {}
+        for i = 1, #flagTable do
+            tempMenu[i] = MENU_GROUP_COMMAND:New(group, flagTable[i][1], parentMenu, setMissionFlag, flagTable, flagTable[i][2])
+        end
+        return tempMenu
+    end
+
+    -- helper function gets client data and passes it into buildMissionMenu, along with table specifying flags and menu labels
+    local function buildMenuHelper(client)
+        if (client ~= nil) and (client:IsAlive()) then
+            local clientName = client:GetPlayerName()
+            local group = client:GetGroup()
+            local groupName = group:GetName()
+            local lightsMenu = MENU_GROUP:New(group, "Set CVN Lights")
+            local manageServerMenu = MENU_GROUP:New(group, "Reload Mission")
+            buildMissionMenu(lCVNlightSettings, group, lightsMenu)
+            buildMissionMenu(lMissionRestartFlags ,group, manageServerMenu)
+            --lClientSet:Remove(client:GetName(), true)
+            return true
+        else
+            return false
+        end
+    end
+
+    -- once initialised, function calls itself once per second for the duration of the mission
+    -- iterates through list of clients, calling buildMenuHelper for each
+    local function buildClientMenu()
+        gClientSet:ForEachClient(buildMenuHelper, client)
+        timer.scheduleFunction(buildClientMenu, {}, timer.getTime() + 1)
+    end
+
     function main()
         initSpawnZones()
         buildPresentationMenu()
         fleetDefenceTrainer()
         airToAirRange()
         interceptTrainer()
+        buildClientMenu()
+        MESSAGE:New("Map Admin Loaded"):ToAll()
         MESSAGE:New("Air to Air Training Script Loaded"):ToAll()
         return 0
     end

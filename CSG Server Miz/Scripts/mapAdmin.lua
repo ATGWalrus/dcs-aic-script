@@ -9,6 +9,8 @@
 --- from this data, client menus will be generated each option of which will
 --- set a flag defined in the ME with corresponding number to true and all others in the source table to false
 
+    local mapAdmin = {}
+
     local lCVNlightSettings = {{"CVN Lights Off", 750}, {"CVN Lights Auto", 751}, {"CVN Lights Navigation", 752}, {"CVN Lights Launch", 753}, {"CVN Lights Recovery", 754}}
     local lMissionRestartFlags = {{"Load Daytime Mission", 600}, {"Load Nighttime Mission", 601}, {"Load Dawn Mission", 602}, {"Load Dusk Mission", 603}}
     gClientSet = SET_CLIENT:New():FilterCoalitions("blue"):FilterActive():FilterStart()
@@ -57,6 +59,10 @@
         end
     end
 
+    function mapAdmin.getClientSet()
+        return gClientSet
+    end
+
     -- once initialised, function calls itself once per second for the duration of the mission
     -- iterates through list of clients, calling buildMenuHelper for each
     local function buildClientMenu()
@@ -71,3 +77,5 @@
     end
 
     main()
+
+    return mapAdmin
