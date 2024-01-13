@@ -748,11 +748,12 @@
     end
 
     -- helper function gets client data and passes it into buildMissionMenu, along with table specifying flags and menu labels
-    local function buildMenuHelper(client)
+    local function clientMenuHelper(client, topMenu, menuData)
         if (client ~= nil) and (client:IsAlive()) then
             local clientName = client:GetPlayerName()
             local group = client:GetGroup()
             local groupName = group:GetName()
+            local unitName = client:GetDCSGroup()
             local lightsMenu = MENU_GROUP:New(group, "Set CVN Lights")
             local manageServerMenu = MENU_GROUP:New(group, "Reload Mission")
             buildMissionMenu(lCVNlightSettings, group, lightsMenu)
@@ -767,7 +768,7 @@
     -- once initialised, function calls itself once per second for the duration of the mission
     -- iterates through list of clients, calling buildMenuHelper for each
     local function buildClientMenu()
-        gClientSet:ForEachClient(buildMenuHelper, client)
+        gClientSet:ForEachClient(clientMenuHelper, client)
         timer.scheduleFunction(buildClientMenu, {}, timer.getTime() + 1)
     end
 
