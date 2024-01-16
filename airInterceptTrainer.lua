@@ -189,7 +189,7 @@
     gBearingMenuItems = {}
     gGroupMenuTable = {} -- will contain menu instances to control all alive groups
     local lCVNlightSettings = {{"CVN Lights Off", 750}, {"CVN Lights Auto", 751}, {"CVN Lights Navigation", 752}, {"CVN Lights Launch", 753}, {"CVN Lights Recovery", 754}}
-    local lMissionRestartFlags = {{"Load Daytime Mission", 600}, {"Load Nighttime Mission", 601}, {"Load Dawn Mission", 602}, {"Load Dusk Mission", 603}}
+    local lMissionRestartFlags = {{"Load Daytime Mission", 600}, {"Load Nighttime Mission", 601}} --, {"Load Dawn Mission", 602}, {"Load Dusk Mission", 603}}
     gClientSet = SET_CLIENT:New():FilterCoalitions("blue"):FilterActive():FilterStart()
     BASE:E("lClientSet generated")
     local lInterceptTriggerZoneTable = {}
@@ -665,30 +665,28 @@
         MESSAGE:New("Single Aircraft has been spawned 100 miles from your nose with " .. aspectString .. " TA"):ToGroup(group)
     end
 
-    local function buildInterceptTrainerMenu(client)
-        if (client ~= nil) and (client:IsAlive()) then
-            local fighterGroup = client:GetGroup()
-            local fighterUnit = client:GetClientGroupUnit()
-            local playerName = client:GetPlayerName()
-            local targetSpawnZone = ZONE_UNIT:New("Intercept Target Spawn Zone", fighterUnit, nmToMetres(15),
-                    {rho = nmToMetres(100), theta = 0, relative_to_unit = true})
-            local interceptTrainerTopMenu = MENU_GROUP:New(fighterGroup, "Stern Conversion Trainer", lAirToAirMenu)
-            local fighterHeading = fighterGroup:GetHeading()
-            local clientMenuTable = {}
-            for i = 1, #gTargetAspectTable do
-                clientMenuTable[i] = MENU_GROUP_COMMAND:New(fighterGroup,
-                        "Spawn Intercept Target with " .. gTargetAspectTable[i][3] .. " Target Aspect",
-                        interceptTrainerTopMenu, interceptTrainerHelper, client, targetSpawnZone, fighterHeading, gTargetAspectTable[i][1],
-                        gTargetAspectTable[i][2], gTargetAspectTable[3], fighterGroup)
-            end
-            return clientMenuTable
+    local function buildInterceptTrainerMenu(group, unit)
+        local fighterGroup = group
+        local fighterUnit = unit
+        local targetSpawnZone = ZONE_UNIT:New("Intercept Target Spawn Zone", fighterUnit, nmToMetres(15),
+                {rho = nmToMetres(100), theta = 0, relative_to_unit = true})
+        local interceptTrainerTopMenu = MENU_GROUP:New(fighterGroup, "Stern Conversion Trainer", lAirToAirMenu)
+        local fighterHeading = fighterGroup:GetHeading()
+        local clientMenuTable = {}
+        for i = 1, #gTargetAspectTable do
+            clientMenuTable[i] = MENU_GROUP_COMMAND:New(fighterGroup,
+                    "Spawn Intercept Target with " .. gTargetAspectTable[i][3] .. " Target Aspect",
+                    interceptTrainerTopMenu, interceptTrainerHelper, client, targetSpawnZone, fighterHeading, gTargetAspectTable[i][1],
+                    gTargetAspectTable[i][2], gTargetAspectTable[3], fighterGroup)
         end
+        return clientMenuTable
     end
 
-    local function interceptTrainer()
-        gClientSet:ForEachClient(buildInterceptTrainerMenu, client)
+    --- deprecated
+    --[[local function interceptTrainer(group, unit)
+        gClientSet:ForEachClient(buildInterceptTrainerMenu, group, unit)
         timer.scheduleFunction(interceptTrainer, {}, timer.getTime() + 1)
-    end
+    end]]--
 
     --- air to air range
     --- spawns hostile fighters in a specified zone
@@ -753,12 +751,12 @@
             local clientName = client:GetPlayerName()
             local group = client:GetGroup()
             local groupName = group:GetName()
-            local unitName = client:GetDCSGroup()
+            local unit = client:GetClientGroupUnit()
             local lightsMenu = MENU_GROUP:New(group, "Set CVN Lights")
             local manageServerMenu = MENU_GROUP:New(group, "Reload Mission")
             buildMissionMenu(lCVNlightSettings, group, lightsMenu)
-            buildMissionMenu(lMissionRestartFlags ,group, manageServerMenu)
-            --lClientSet:Remove(client:GetName(), true)
+            buildMissionMenu(lMissionRestartFlags, group, manageServerMenu)
+            buildInterceptTrainerMenu(group, unit)
             return true
         else
             return false
@@ -777,7 +775,7 @@
         buildPresentationMenu()
         fleetDefenceTrainer()
         airToAirRange()
-        interceptTrainer()
+        --interceptTrainer()    buildInterceptTrainerMenu now called in buildClientMenu
         buildClientMenu()
         MESSAGE:New("Map Admin Loaded"):ToAll()
         MESSAGE:New("Air to Air Training Script Loaded"):ToAll()
