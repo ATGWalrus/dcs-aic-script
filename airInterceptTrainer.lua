@@ -629,7 +629,7 @@
     local function fleetDefenceTrainerHelper(bomberType)
         spawnLocation = selectLocationInZone(getRandomSpawnZone())
         local tempGroup = spawnGroup(spawnLocation, bearingTo(spawnLocation, getRooseveltLocation()), bomberType, "Medium", nil, getRooseveltLocation())
-        setBogeyTriggerZones(tempGroup)
+        --setBogeyTriggerZones(tempGroup)   // zone functions bugged since last 2023 DCS update
     end
 
     local function buildBomberSelectMenu(side)
@@ -693,10 +693,10 @@
     --- supports the calling of multiple presentations and multi-aircraft groups
     --- structured as fleetDefenceTrainer and interceptTrainer; buildMenu script creates a menu and passes data to helper function which calls spawnGroup
     local function airToAirRangeHelper(groupType, altitude, groupSize, groupFormation)
-        spawnAICPresHelper(gPresentationTypeTable[6], groupType,  ZONE:FindByName("A-A Start Zone"), altitude, 360, groupSize)
+        spawnAICPresHelper(gPresentationTypeTable[6], groupType,  ZONE:FindByName("A-A Start Zone"), altitude, 35, groupSize)
     end
 
-    local function buildAirToAirRangeMenu()
+    local function bvrRangeMenu()
         airToAirRangeTopMenu = MENU_COALITION:New(coalition.side.BLUE, "Air to Air Range", lAirToAirMenu)
         airToAirRangeTypeMenu = {}
         airToAirRangeFlightSizeMenu = {}
@@ -715,8 +715,8 @@
         return airToAirRangeTypeMenu, airToAirRangeFlightSizeMenu, airToAirRangeAltMenu
     end
 
-    local function airToAirRange()
-        buildAirToAirRangeMenu()
+    local function airToAirRanges()
+        bvrRangeMenu()
     end
 
     -- sets a flag to be true (1) or false (0)
@@ -774,7 +774,7 @@
         initSpawnZones()
         buildPresentationMenu()
         fleetDefenceTrainer()
-        airToAirRange()
+        airToAirRanges()
         --interceptTrainer()    buildInterceptTrainerMenu now called in buildClientMenu
         buildClientMenu()
         MESSAGE:New("Map Admin Loaded"):ToAll()

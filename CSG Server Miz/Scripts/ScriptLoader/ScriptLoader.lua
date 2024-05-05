@@ -4,7 +4,7 @@
 
     function loadSource()
         assert(loadfile("C:/CSGMission/GM Scripts/CSG Server Miz/Scripts/MOOSE/Moose.lua"))()
-        assert(loadfile("C:/CSGMission/GM Scripts/CSG Server Miz/Scripts/MIST/mist_4_5_122.lua"))()
+        --assert(loadfile("C:/CSGMission/GM Scripts/CSG Server Miz/Scripts/MIST/mist_4_5_122.lua"))()
     end
 
     function loadDMLmodules()
