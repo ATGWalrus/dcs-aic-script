@@ -1,6 +1,6 @@
-	BASE:TraceOnOff(true)
-	BASE:TraceLevel(1)
-	BASE:TraceClass("AIRBOSS")
+	--BASE:TraceOnOff(true)
+	--BASE:TraceLevel(1)
+	--BASE:TraceClass("AIRBOSS")
 
 	gRecoveryTankerTable = {}
 	gAwacsTable = {}
@@ -10,6 +10,16 @@
 
 	-- Create AIRBOSS object.
 	AirbossRoosevelt=AIRBOSS:New("USS Theodore Roosevelt")
+
+	-- Funkman On
+	AirbossRoosevelt:SetFunkManOn()
+
+	function AirbossRoosevelt:OnAfterLSOGrade(From, Event, To, playerData, grade)
+		local PlayerData = playerData
+		local Grade = grade
+		local score = tonumber(Grade.points)
+		local name = tostring(PlayerData.name)
+	end
 
 	-- S-3B Recovery Tanker spawning on deck
 	local tankerLow =RECOVERYTANKER:New("USS Theodore Roosevelt", "Texaco Group")
