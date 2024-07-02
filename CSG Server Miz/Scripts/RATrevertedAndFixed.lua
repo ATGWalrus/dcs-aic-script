@@ -33,6 +33,7 @@
                         {"MIL AU130", {"COMAIR South", "COMAIR Southeast"}, {"Andersen AFB"}, false, true, 300, 600, 100},
                         {"MIL RC135", {"Andersen AFB"}, {"MIL Northeast", "MIL West", "COMAIR NNNW"}, false, true, 500, 600, 200},
                         {"MIL USB52", {"Andersen AFB"}, {"MIL Northeast", "MIL West", "COMAIR NW2"}, false, true, 800, 600, 300},
+                        {"MIL USB52IN", {"MIL Northeast", "MIL West", "COMAIR NW2"}, {"Andersen AFB"}, false, true, 800, 600, 300},
                         {"MIL USNC9", {"COMAIR SouthEast", "MIL Northeast"}, {"Andersen AFB"}, false, true, 600, 300, 180}}
 
 
